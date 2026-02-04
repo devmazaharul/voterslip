@@ -2,7 +2,7 @@
 
 import React, { useState, FormEvent, ChangeEvent } from "react";
 
-// ----- টাইপ ডেফিনিশন -----
+
 interface VoterInfo {
   Id: number;
   Serial: string;
@@ -29,11 +29,10 @@ interface ApiResponse {
 }
 
 interface FormData {
-  dob: string;   // DD/MM/YYYY (বাংলা ডিজিট)
-  union: string; // এখানে এখন ১৪ নং ইউনিয়নের গ্রাম সিলেক্ট হবে
+  dob: string;   
+  union: string; 
 }
 
-// ----- ১৪ নং ইউনিয়ন (কচুয়া) এর সব গ্রাম এখানে যোগ করবেন -----
 const villages: string[] = [
   "নরেন্দ্রপুর",
   "আন্দুলিয়া",
@@ -53,7 +52,7 @@ const villages: string[] = [
 ];
 
 
-// ইংরেজি ↔ বাংলা ডিজিট ম্যাপ
+
 const engDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const bangDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
 
@@ -63,21 +62,20 @@ const toBanglaDigits = (value: string): string =>
 const toEnglishDigits = (value: string): string =>
   value.replace(/[০-৯]/g, (d) => engDigits[bangDigits.indexOf(d)]);
 
-// ইনপুটকে সবসময় DD/MM/YYYY আকারে (বাংলা ডিজিট) ফরম্যাট করবে
 const formatDobBangla = (raw: string): string => {
-  // আগে ইংরেজি ডিজিটে এনে শুধু ডিজিট রাখি
+
   let eng = toEnglishDigits(raw).replace(/\D/g, "");
-  eng = eng.slice(0, 8); // DDMMYYYY → মোট ৮ ডিজিট
+  eng = eng.slice(0, 8); 
 
   let formatted = eng;
 
   if (eng.length <= 2) {
-    formatted = eng; // D, DD
+    formatted = eng; 
   } else if (eng.length <= 4) {
-    // DD/MM
+
     formatted = eng.slice(0, 2) + "/" + eng.slice(2);
   } else {
-    // DD/MM/YYYY
+
     formatted =
       eng.slice(0, 2) + "/" + eng.slice(2, 4) + "/" + eng.slice(4);
   }
@@ -94,7 +92,7 @@ const VoterSearchForm: React.FC = () => {
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string>("");
 
-  // DOB ইনপুট হ্যান্ডলার (DD/MM/YYYY + বাংলা ডিজিট)
+
   const handleDobChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     const formatted = formatDobBangla(val);
@@ -118,7 +116,7 @@ const VoterSearchForm: React.FC = () => {
     setError("");
     setApiData(null);
 
-    // DOB ভ্যালিডেশন: DD/MM/YYYY (ইংরেজি ডিজিটে চেক)
+
     const dobEng = toEnglishDigits(formData.dob);
     const dobPattern = /^\d{2}\/\d{2}\/\d{4}$/;
 
@@ -140,7 +138,7 @@ const VoterSearchForm: React.FC = () => {
       "https://vapi.aesysit.com/api/Data/GetVoterInfoListByNameDOBWard";
 
     try {
-      // API তে ঠিক এই বাংলা DD/MM/YYYY স্ট্রিংই যাবে
+
       const dobForApi = formData.dob;
 
       const response = await fetch(apiUrl, {
@@ -149,8 +147,8 @@ const VoterSearchForm: React.FC = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          DOB: dobForApi,       // বাংলা DD/MM/YYYY
-          Ward: formData.union, // এখানে সিলেক্ট করা গ্রামই যাবে
+          DOB: dobForApi,     
+          Ward: formData.union, 
           Identification:
             "kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==",
         }),
@@ -178,9 +176,9 @@ const VoterSearchForm: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-emerald-50 text-slate-900 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-3xl">
-        {/* আউটার কার্ড */}
+
         <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl shadow-slate-200/80 overflow-hidden">
-          {/* হেডার */}
+
           <div className="border-b border-slate-200 bg-gradient-to-r from-emerald-100 via-white to-sky-100 px-6 py-5 md:px-8 md:py-6">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -205,9 +203,9 @@ const VoterSearchForm: React.FC = () => {
             </div>
           </div>
 
-          {/* কন্টেন্ট */}
+
           <div className="px-5 md:px-8 py-5 md:py-6 space-y-6">
-            {/* ফর্ম সেকশন */}
+
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 md:px-5 md:py-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm md:text-base font-semibold text-slate-900">
@@ -223,7 +221,7 @@ const VoterSearchForm: React.FC = () => {
             className="grid grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)_auto] gap-3 md:gap-4 items-start"
 
               >
-                {/* DOB (DD/MM/YYYY, বাংলা) */}
+
                 <div>
                   <label
                     htmlFor="dob"
@@ -250,7 +248,7 @@ const VoterSearchForm: React.FC = () => {
                   </p>
                 </div>
 
-                {/* গ্রাম (আগে যেখানে ইউনিয়ন ছিল) */}
+
                 <div>
                   <label
                     htmlFor="union"
@@ -275,7 +273,7 @@ const VoterSearchForm: React.FC = () => {
                   </select>
                 </div>
 
-                {/* সাবমিট বাটন */}
+
                 <div className="md:pl-1">
                   <button
                     type="submit"
@@ -290,16 +288,17 @@ const VoterSearchForm: React.FC = () => {
                     {loading ? "অনুসন্ধান চলছে..." : "তথ্য খুঁজুন"}
                   </button>
                 </div>
+                
               </form>
 
-              {/* এরর মেসেজ */}
+
               {error && (
                 <div className="mt-3 text-[11px] rounded-md border border-red-300 bg-red-50 text-red-700 px-3 py-2">
                   {error}
                 </div>
               )}
 
-              {/* ছোট নোট */}
+
               <p className="mt-2 text-[11px] text-slate-500">
                 যেমন জন্ম তারিখ যদি হয় 5 December 1995, লিখুন{" "}
                 <span className="font-semibold text-emerald-700">
@@ -309,7 +308,7 @@ const VoterSearchForm: React.FC = () => {
               </p>
             </div>
 
-            {/* সিলেকশন সামারি */}
+
             {(formData.dob || formData.union) && (
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-600">
                 <span className="uppercase tracking-[0.2em] text-slate-400">
@@ -329,7 +328,7 @@ const VoterSearchForm: React.FC = () => {
               </div>
             )}
 
-            {/* ফলাফল সেকশন */}
+
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 md:px-5 md:py-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm md:text-base font-semibold text-slate-900">
@@ -371,7 +370,7 @@ const VoterSearchForm: React.FC = () => {
                             key={voter.Id}
                             className="bg-white border border-emerald-200 rounded-xl p-4 hover:border-emerald-400 hover:shadow-md hover:shadow-emerald-100 transition"
                           >
-                            {/* নাম + ভোটার নং */}
+      
                             <div className="flex justify-between items-start border-b border-slate-200 pb-2.5 mb-3">
                               <div>
                                 <h3 className="text-base md:text-lg font-bold text-emerald-800">
@@ -394,7 +393,7 @@ const VoterSearchForm: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* বিস্তারিত */}
+    
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] text-slate-700">
                               <p>
                                 <span className="font-semibold text-slate-900">
@@ -422,7 +421,7 @@ const VoterSearchForm: React.FC = () => {
                               </p>
                             </div>
 
-                            {/* ভোট কেন্দ্র */}
+
                             <div className="mt-3 pt-2.5 border-t border-slate-200 bg-emerald-50 -mx-4 -mb-4 px-4 py-2 rounded-b-xl text-[11px] text-slate-800">
                               <span className="font-semibold text-emerald-800">
                                 ভোট কেন্দ্র:
@@ -446,10 +445,24 @@ const VoterSearchForm: React.FC = () => {
                   )}
                 </>
               )}
+              
             </div>
+            <small className="flex items-center gap-1">
+  Developed by  
+  <a
+    href="https://www.mazaharul.site"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-emerald-600 hover:text-emerald-700 font-medium underline-offset-2 hover:underline"
+  >
+     Mazaharul
+  </a>
+</small>
+
           </div>
         </div>
       </div>
+   
     </div>
   );
 };
