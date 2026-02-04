@@ -165,16 +165,7 @@ const VoterSearchForm: React.FC = () => {
                     {/* Header */}
                     <div className="border-b border-slate-200 bg-gradient-to-r from-emerald-100 via-white to-sky-100 px-6 py-5 md:px-8 md:py-6">
                         <div className="flex items-center justify-between gap-3">
-                            <div className="relative bg-black w-20 h-20 rounded-2xl overflow-hidden">
-                                <video
-                                    src="/video.mp4"
-                                    className="w-30 h-30 object-cover"
-                                    autoPlay
-                                    loop
-                                    playsInline
-                                    controls
-                                />
-                            </div>
+                            
                             <div>
                                 <p className="text-xs uppercase tracking-[0.25em] text-emerald-600 mb-1">
                                     Jashore Sadar • Voter Lookup
@@ -443,8 +434,20 @@ const VoterSearchForm: React.FC = () => {
                             </a>
                         </small>
                     </div>
-                </div>
+                </div><br />
+                <br />
+                <div className="relative bg-black  rounded-2xl overflow-hidden w-full">
+                                <video
+                                    src="/video.mp4"
+                                    className="w-full h-100 object-cover"
+                                    autoPlay
+                                    loop
+                                    playsInline
+                                    controls
+                                />
+                            </div>
             </div>
+            
         </div>
     );
 };
