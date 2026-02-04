@@ -35,6 +35,7 @@ interface FormData {
 
 const villages: string[] = [
   "নরেন্দ্রপুর",
+  "বলরামপুর",
   "আন্দুলিয়া",
   "চিলুম্বরী",
   "জিরাত",
@@ -45,7 +46,6 @@ const villages: string[] = [
   "শাখারীগাতী",
   "চৌলিয়া",
   "গোপালপুর",
-  "বলরামপুর",
   "রামপুর",
   "চৌঘাটা",
   "ভাগবতীপুর"
@@ -196,9 +196,7 @@ const VoterSearchForm: React.FC = () => {
                 <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-300 font-semibold">
                   যশোর সদর • ১৪ নং ইউনিয়ন
                 </span>
-                <span className="mt-2 text-[11px] text-slate-500">
-                  ডাটা সোর্স: ইলেক্টোরাল ডাটাবেইজ
-                </span>
+              
               </div>
             </div>
           </div>
@@ -254,7 +252,7 @@ const VoterSearchForm: React.FC = () => {
                     htmlFor="union"
                     className="block text-xs font-medium text-slate-800 mb-1.5"
                   >
-                    গ্রাম (১৪ নং ইউনিয়ন - কচুয়া)
+                     ১৪ নং ইউনিয়ন - নরেন্দ্রপুর
                   </label>
                   <select
                     id="union"
