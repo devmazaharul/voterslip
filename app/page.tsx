@@ -1,5 +1,6 @@
 'use client';
 
+import axios from 'axios';
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 
 interface VoterInfo {
@@ -108,6 +109,7 @@ const VoterSearchForm: React.FC = () => {
         setError('');
         setApiData(null);
 
+        // ১. ভ্যালিডেশন
         const dobEng = toEnglishDigits(formData.dob);
         const dobPattern = /^\d{2}\/\d{2}\/\d{4}$/;
 
@@ -123,32 +125,34 @@ const VoterSearchForm: React.FC = () => {
 
         setLoading(true);
 
-        const apiUrl = 'https://vapi.aesysit.com/api/Data/GetVoterInfoListByNameDOBWard';
-
         try {
-            const dobForApi = formData.dob;
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    DOB: dobForApi,
-                    Ward: formData.union,
-                    Identification: 'kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==',
-                }),
+            // ২. Axios POST রিকোয়েস্ট (নিজের API রুট কল)
+            const { data } = await axios.post<ApiResponse>('/api/voter', {
+                DOB: formData.dob, // বাংলা DD/MM/YYYY
+                Ward: formData.union, // গ্রাম
             });
 
-            if (!response.ok) {
-                throw new Error(`সার্ভার এরর: ${response.status}`);
+            // ৩. সফলতা হ্যান্ডেলিং
+            if (data.IsSuccess) {
+                setApiData(data);
+                if (data.Data.data.length === 0) {
+                    setError('দুঃখিত, কোনো তথ্য পাওয়া যায়নি।');
+                }
+            } else {
+                // যদি API থেকে IsSuccess: false আসে (কিন্তু স্ট্যাটাস ২০০)
+                setError(data.Message || 'তথ্য খুঁজে পাওয়া যায়নি।');
             }
+        } catch (err: any) {
+            // ৪. এরর হ্যান্ডেলিং (৪০০ স্ট্যাটাস বা নেটওয়ার্ক এরর)
+            console.error('API Error (frontend):', err);
 
-            const result: ApiResponse = await response.json();
-            setApiData(result);
-        } catch (err) {
-            console.error('API Error:', err);
-            setError('তথ্য লোড করতে সমস্যা হয়েছে অথবা সার্ভার রেসপন্স করছে না।');
+            if (axios.isAxiosError(err)) {
+                // আপনার দেওয়া Response Shape অনুযায়ী সার্ভার মেসেজ দেখাচ্ছে
+                const serverMessage = err.response?.data?.Message;
+                setError(serverMessage || 'তথ্য লোড করতে সমস্যা হয়েছে।');
+            } else {
+                setError('নেটওয়ার্ক বা অজানা সমস্যা দেখা দিয়েছে।');
+            }
         } finally {
             setLoading(false);
         }
@@ -165,7 +169,6 @@ const VoterSearchForm: React.FC = () => {
                     {/* Header */}
                     <div className="border-b border-slate-200 bg-gradient-to-r from-emerald-100 via-white to-sky-100 px-6 py-5 md:px-8 md:py-6">
                         <div className="flex items-center justify-between gap-3">
-                            
                             <div>
                                 <p className="text-xs uppercase tracking-[0.25em] text-emerald-600 mb-1">
                                     Jashore Sadar • Voter Lookup
@@ -434,20 +437,23 @@ const VoterSearchForm: React.FC = () => {
                             </a>
                         </small>
                     </div>
-                </div><br />
+                </div>
+
                 <br />
-                <div className="relative bg-black  rounded-2xl overflow-hidden w-full">
-                                <video
-                                    src="/video.mp4"
-                                    className="w-full h-100 object-cover"
-                                    autoPlay
-                                    loop
-                                    playsInline
-                                    controls
-                                />
-                            </div>
+                <br />
+
+                {/* Video section নিচে */}
+                <div className="relative bg-black rounded-2xl overflow-hidden w-full">
+                    <video
+                        src="/video.mp4"
+                        className="w-full h-40 md:h-56 object-cover"
+                        autoPlay
+                        loop
+                        playsInline
+                        controls
+                    />
+                </div>
             </div>
-            
         </div>
     );
 };
