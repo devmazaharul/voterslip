@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,7 @@ const LogsDashboardPage: React.FC = () => {
   const [sort, setSort] = useState<SortOption>("latest");
   const [selectedLog, setSelectedLog] = useState<SearchLogDoc | null>(null);
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const fetchLogs = async (sortOption: SortOption) => {
     try {
@@ -102,6 +103,26 @@ const LogsDashboardPage: React.FC = () => {
     });
   };
 
+  // client-side filter
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery.trim()) return logs;
+    const q = searchQuery.toLowerCase();
+
+    return logs.filter((log) => {
+      const dob = log.searchCriteria?.dob?.toLowerCase() || "";
+      const ward = log.searchCriteria?.ward?.toLowerCase() || "";
+      const ip = log.network?.ip?.toLowerCase() || "";
+      const name = log.result?.name?.toLowerCase() || "";
+
+      return (
+        dob.includes(q) ||
+        ward.includes(q) ||
+        ip.includes(q) ||
+        name.includes(q)
+      );
+    });
+  }, [logs, searchQuery]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-slate-100 px-4 py-6 md:px-8 md:py-8">
       {/* ব্যাকগ্রাউন্ড glow */}
@@ -112,7 +133,7 @@ const LogsDashboardPage: React.FC = () => {
 
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-300/80 mb-1">
               Admin • Analytics
@@ -125,34 +146,56 @@ const LogsDashboardPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Sort Control */}
-          <div className="flex flex-col items-end gap-2">
-            <span className="text-xs text-slate-400">
-              Sort by created time
-            </span>
-            <div className="inline-flex items-center rounded-full bg-slate-900/70 border border-slate-700 px-1 py-1 shadow-md shadow-black/40">
+          {/* Right controls: sort + refresh + search */}
+          <div className="flex flex-col items-stretch gap-3">
+            {/* Sort + Refresh */}
+            <div className="flex items-center gap-2 self-end">
+              <span className="text-xs text-slate-400">
+                Sort by created time
+              </span>
+              <div className="inline-flex items-center rounded-full bg-slate-900/70 border border-slate-700 px-1 py-1 shadow-md shadow-black/40">
+                <button
+                  type="button"
+                  onClick={() => setSort("latest")}
+                  className={`px-3 py-1.5 cursor-pointer rounded-full text-xs font-semibold transition ${
+                    sort === "latest"
+                      ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-400/60"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  Latest
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSort("oldest")}
+                  className={`px-3 py-1.5 rounded-full cursor-pointer text-xs font-semibold transition ${
+                    sort === "oldest"
+                      ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-400/60"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  Oldest
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setSort("latest")}
-                className={`px-3 py-1.5 cursor-pointer rounded-full text-xs font-semibold transition ${
-                  sort === "latest"
-                    ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-400/60"
-                    : "text-slate-300 hover:text-white"
-                }`}
+                onClick={() => fetchLogs(sort)}
+                className="cursor-pointer inline-flex items-center gap-1 rounded-full border border-slate-600 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:border-emerald-400 hover:text-emerald-200 hover:bg-slate-900 transition"
               >
-                Latest
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Refresh
               </button>
-              <button
-                type="button"
-                onClick={() => setSort("oldest")}
-                className={`px-3 py-1.5 rounded-full cursor-pointer text-xs font-semibold transition ${
-                  sort === "oldest"
-                    ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-400/60"
-                    : "text-slate-300 hover:text-white"
-                }`}
-              >
-                Oldest
-              </button>
+            </div>
+
+            {/* Search filter */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter by DOB / গ্রাম / IP / নাম"
+                className="w-full md:w-72 px-3 py-2 rounded-lg bg-slate-900/80 border border-slate-700 text-slate-100 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 placeholder:text-slate-500"
+              />
             </div>
           </div>
         </div>
@@ -176,6 +219,15 @@ const LogsDashboardPage: React.FC = () => {
               <span className="font-semibold text-emerald-300">
                 {logs.length}
               </span>
+              {searchQuery.trim() && (
+                <>
+                  {" "}
+                  | ফিল্টারড:{" "}
+                  <span className="font-semibold text-emerald-300">
+                    {filteredLogs.length}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -195,7 +247,9 @@ const LogsDashboardPage: React.FC = () => {
 
           {/* Table */}
           {!loading && logs.length > 0 && (
-            <div className="overflow-x-auto">
+            <div
+              className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
               <table className="w-full text-left text-xs md:text-sm border-collapse">
                 <thead className="bg-slate-900/90 border-b border-slate-800">
                   <tr>
@@ -226,7 +280,7 @@ const LogsDashboardPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map((log, index) => (
+                  {filteredLogs.map((log, index) => (
                     <tr
                       key={log._id}
                       className={`border-b border-slate-800/80 ${
@@ -303,7 +357,7 @@ const LogsDashboardPage: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-xs bg-emerald-800 border-emerald-500/60 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 cursor-pointer hover:border-emerald-400"
+                          className="cursor-pointer text-xs bg-emerald-800 border-emerald-500/60 text-emerald-300 hover:bg-emerald-500 hover:text-slate-950 hover:border-emerald-400"
                           onClick={() => handleOpenDetails(log)}
                         >
                           Details
@@ -311,6 +365,16 @@ const LogsDashboardPage: React.FC = () => {
                       </td>
                     </tr>
                   ))}
+                  {filteredLogs.length === 0 && logs.length > 0 && (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-3 py-4 text-center text-[12px] text-slate-400"
+                      >
+                        ফিল্টার অনুযায়ী কোনো লগ পাওয়া যায়নি।
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -319,7 +383,7 @@ const LogsDashboardPage: React.FC = () => {
 
         {/* Details Modal (shadcn Dialog) */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="max-w-lg  md:max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 text-slate-100 border border-slate-700 shadow-2xl shadow-black/70">
+          <DialogContent className="max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 text-slate-100 border border-slate-700 shadow-2xl shadow-black/70">
             <DialogHeader>
               <DialogTitle className="text-base md:text-lg text-emerald-300">
                 সার্চ লগ বিস্তারিত
@@ -375,7 +439,7 @@ const LogsDashboardPage: React.FC = () => {
                       </div>
                       <div>
                         <span className="font-medium text-slate-200">
-                          Father/হুই:
+                          Father/husband :
                         </span>{" "}
                         {selectedLog.result.father_name || "—"}
                       </div>
