@@ -425,7 +425,8 @@ const VoterSearchForm: React.FC = () => {
                             )}
                         </div>
 
-                        <small className="flex items-center gap-1">
+                       <i>
+                         <small className="flex items-center gap-1">
                             Developed by
                             <a
                                 href="https://www.mazaharul.site"
@@ -433,9 +434,10 @@ const VoterSearchForm: React.FC = () => {
                                 rel="noopener noreferrer"
                                 className="text-emerald-600 hover:text-emerald-700 font-medium underline-offset-2 hover:underline"
                             >
-                                Mazaharul
+                                Maza IT
                             </a>
                         </small>
+                       </i>
                     </div>
                 </div>
 
@@ -446,7 +448,7 @@ const VoterSearchForm: React.FC = () => {
                 <div className="relative bg-black rounded-2xl overflow-hidden w-full">
                     <video
                         src="/video.mp4"
-                        className="w-full h-40 md:h-56 object-cover"
+                        className="w-full h-100 object-cover"
                         autoPlay
                         loop
                         playsInline
