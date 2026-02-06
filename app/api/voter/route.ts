@@ -30,6 +30,7 @@ interface ExternalApiResponse {
   Message: string;
 }
 
+// ক্লায়েন্টের IP বের করার ছোট হেল্পার
 function getClientIp(req: NextRequest): string {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) {
@@ -44,6 +45,7 @@ function getClientIp(req: NextRequest): string {
   return req.ip || "::1";
 }
 
+// User-Agent পার্সার (simple, extra প্যাকেজ ছাড়া)
 function parseUserAgent(ua: string) {
   const lower = ua.toLowerCase();
 
@@ -51,6 +53,7 @@ function parseUserAgent(ua: string) {
   let os = "Unknown";
   let deviceType: "Mobile" | "Tablet" | "Desktop" = "Desktop";
 
+  // Browser detect
   if (lower.includes("edg/")) {
     browser = "Edge";
   } else if (lower.includes("opr/") || lower.includes("opera")) {
@@ -63,6 +66,7 @@ function parseUserAgent(ua: string) {
     browser = "Firefox";
   }
 
+  // OS detect
   if (lower.includes("windows nt")) {
     os = "Windows";
   } else if (lower.includes("android")) {
@@ -79,6 +83,7 @@ function parseUserAgent(ua: string) {
     os = "Linux";
   }
 
+  // Device type
   if (/mobile|iphone|ipod|android.*mobile/i.test(ua)) {
     deviceType = "Mobile";
   } else if (/ipad|tablet/i.test(ua)) {
@@ -96,6 +101,7 @@ function parseUserAgent(ua: string) {
   };
 }
 
+// লোকাল / প্রাইভেট IP কিনা চেক
 function isPrivateIp(ip: string): boolean {
   return (
     ip === "::1" ||
@@ -127,12 +133,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // --- প্রি-ডাটা প্রস্তুতি (sync) ---
     const userAgent = req.headers.get("user-agent") || "";
     const deviceInfo = parseUserAgent(userAgent);
 
     let ip = getClientIp(req).trim();
     if (ip === "::1") ip = "127.0.0.1";
 
+    // network-এর default মান
     let network = {
       ip,
       city: "",
@@ -142,7 +150,8 @@ export async function POST(req: NextRequest) {
       timezone: "",
     };
 
-    // ভোটার API (timeout ছাড়া, ডিফল্ট 0 = no timeout)
+    // --- ১) ভোটার API, ২) Geo API, ৩) Mongo connect — সব parallel ---
+
     const externalPromise = axios.post<ExternalApiResponse>(
       "https://vapi.aesysit.com/api/Data/GetVoterInfoListByNameDOBWard",
       {
@@ -151,28 +160,31 @@ export async function POST(req: NextRequest) {
         Identification: "kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==",
       },
       {
-        headers: { "Content-Type": "application/json" },
-        // timeout: 0  // না দিলেও ডিফল্ট 0 (no timeout)
+        headers: { "Content-Type": "application/json" }
       }
     );
 
-    // Geo API — শুধু public IP হলে hit করব, আর ১ সেকেন্ড timeout
     const geoPromise =
       ip && !isPrivateIp(ip)
-        ? axios.get(`http://ip-api.com/json/${ip}`, { timeout: 1000 })
+        ? axios.get(`http://ip-api.com/json/${ip}`, {
+            timeout: 1000, // Geo API এর জন্য ১ সেকেন্ড timeout
+          })
         : Promise.resolve(null);
 
-    const dbPromise = connectDB();
+    const dbPromise = connectDB(); // DB connect parallel এ চলবে
 
+    // Parallel await
     const [externalRes, geoRes] = await Promise.all([
       externalPromise,
       geoPromise,
     ]);
 
+    // এখন DB কানেকশন নিশ্চিত করি
     await dbPromise;
 
     const apiData = externalRes.data;
 
+    // Geo result সেট করা (fail হলেও error throw করব না)
     if (geoRes && (geoRes as any).data) {
       const g = (geoRes as any).data;
       if (g.status === "success") {
@@ -187,6 +199,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ২) রেসপন্স থেকে প্রথম ভোটারের ডাটা নিয়ে resultForLog বানানো
     let resultForLog:
       | {
           name: string;
@@ -204,6 +217,7 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    // ৬) Mongo তে লগ সেভ (result সহ)
     await SearchLog.create({
       searchCriteria: {
         dob: DOB,
@@ -214,6 +228,7 @@ export async function POST(req: NextRequest) {
       result: resultForLog || undefined,
     });
 
+    // ৭) external API এর ডাটা 그대로 ক্লায়েন্টে ফেরত
     return NextResponse.json(apiData, { status: 200 });
   } catch (error: any) {
     console.error("Internal /api/voter error:", error?.message || error);
