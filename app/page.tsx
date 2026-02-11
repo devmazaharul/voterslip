@@ -47,12 +47,13 @@ interface ApiResponse {
 }
 
 // ----------------------------------------------------------------------
-// CONSTANTS
+// CONSTANTS — Ward & Center (hardcoded)
 // ----------------------------------------------------------------------
 const WARD_ID = '6954';
 const CENTER_ID = '84087';
-const API_BASE =
-  'https://voterinfoapi.amarvoterslip.com/api/v1/voters/filter';
+
+// ✅ Local API route (No CORS issue)
+const API_URL = '/api/voter';
 
 // ----------------------------------------------------------------------
 // HELPERS
@@ -144,7 +145,8 @@ const VoterSearchForm: React.FC = () => {
     try {
       const apiDate = convertToApiDate(dob);
 
-      const { data } = await axios.get<ApiResponse>(API_BASE, {
+      // ✅ Call LOCAL Next.js API route (no CORS)
+      const { data } = await axios.get<ApiResponse>(API_URL, {
         params: {
           wardId: WARD_ID,
           centerId: CENTER_ID,
@@ -196,19 +198,14 @@ const VoterSearchForm: React.FC = () => {
               {/* ═══ HEADER ═══ */}
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500" />
-
-                {/* Animated orbs */}
                 <div className="absolute -right-10 -top-10 w-44 h-44 bg-white/10 rounded-full blur-2xl" />
                 <div className="absolute left-10 bottom-0 w-32 h-32 bg-teal-300/15 rounded-full blur-2xl" />
                 <div className="absolute right-1/3 top-1/2 w-24 h-24 bg-emerald-300/10 rounded-full blur-xl" />
-
-                {/* Dot pattern */}
                 <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] bg-[size:24px_24px]" />
 
                 <div className="relative px-6 py-7 md:px-10 md:py-9">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      {/* Live badge */}
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.12] backdrop-blur-md border border-white/[0.12] mb-4">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-300 opacity-75" />
@@ -235,7 +232,7 @@ const VoterSearchForm: React.FC = () => {
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/[0.06] text-white/60 text-[10px] font-semibold">
                         <Building2 className="w-3 h-3" />
-                        কেন্দ্র: বলরামপুর
+                        কেন্দ্র: ৮৪০৮৭
                       </span>
                     </div>
                   </div>
@@ -248,7 +245,6 @@ const VoterSearchForm: React.FC = () => {
                 <div className="relative">
                   <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-50/80 to-teal-50/40 border border-emerald-100/50" />
                   <div className="relative p-5 md:p-7 rounded-3xl">
-                    {/* Search header */}
                     <div className="flex items-center justify-between mb-5">
                       <div className="flex items-center gap-3">
                         <div className="relative">
@@ -266,13 +262,12 @@ const VoterSearchForm: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-emerald-700 bg-white px-3 py-1.5 rounded-full border border-emerald-100 uppercase tracking-[0.15em] shadow-2xl shadow-gray-100">
+                      <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-emerald-700 bg-white px-3 py-1.5 rounded-full border border-emerald-100 uppercase tracking-[0.15em] shadow-sm">
                         <Shield className="w-3 h-3 text-emerald-500" />
                         সিকিউর
                       </div>
                     </div>
 
-                    {/* Form */}
                     <form
                       onSubmit={handleSubmit}
                       className="flex flex-col sm:flex-row gap-3 items-start"
@@ -360,9 +355,8 @@ const VoterSearchForm: React.FC = () => {
                       </div>
                     </form>
 
-                    {/* Error */}
                     {error && (
-                      <div className="mt-4 px-4 py-3.5 rounded-2xl bg-red-50 border-2 border-red-100 flex items-start gap-3 animate-in slide-in-from-top-2">
+                      <div className="mt-4 px-4 py-3.5 rounded-2xl bg-red-50 border-2 border-red-100 flex items-start gap-3">
                         <div className="p-1 bg-red-100 rounded-lg shrink-0 mt-0.5">
                           <AlertCircle className="w-3.5 h-3.5 text-red-500" />
                         </div>
@@ -380,7 +374,7 @@ const VoterSearchForm: React.FC = () => {
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">
                       নির্বাচিত:
                     </span>
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-[11px] shadow-2xl shadow-gray-100">
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-[11px] shadow-sm">
                       <Calendar className="w-3 h-3" />
                       {dob}
                     </span>
@@ -397,7 +391,6 @@ const VoterSearchForm: React.FC = () => {
                 <div className="relative">
                   <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-gray-50/60 to-white border border-gray-100/80" />
                   <div className="relative p-5 md:p-7 rounded-3xl">
-                    {/* Results header */}
                     <div className="flex items-center justify-between mb-5">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-gray-100 to-slate-100 flex items-center justify-center border border-gray-200/60">
@@ -413,7 +406,7 @@ const VoterSearchForm: React.FC = () => {
                         </div>
                       </div>
                       {searched && results.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 shadow-2xl shadow-gray-100">
+                        <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 shadow-sm">
                           <Sparkles className="w-3 h-3 text-emerald-500" />
                           {toBanglaDigits(results.length.toString())} জন
                           পাওয়া গেছে
@@ -486,7 +479,6 @@ const VoterSearchForm: React.FC = () => {
                             <div className="px-5 md:px-6 py-5 border-b border-gray-50">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-3.5">
-                                  {/* Avatar */}
                                   <div className="relative">
                                     <div
                                       className={`absolute inset-0 rounded-2xl blur-md opacity-30 ${
@@ -543,7 +535,7 @@ const VoterSearchForm: React.FC = () => {
                                     <Fingerprint className="w-3 h-3" />
                                     NID
                                   </span>
-                                  <span className="text-sm font-mono font-black text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50 px-3 py-1.5 rounded-xl border border-emerald-100 inline-block shadow-2xl shadow-gray-100">
+                                  <span className="text-sm font-mono font-black text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50 px-3 py-1.5 rounded-xl border border-emerald-100 inline-block shadow-sm">
                                     {toBanglaDigits(voter.nid)}
                                   </span>
                                 </div>
@@ -553,7 +545,6 @@ const VoterSearchForm: React.FC = () => {
                             {/* ─── Card Body ─── */}
                             <div className="px-5 md:px-6 py-5">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Father */}
                                 <div className="flex items-start gap-3 group/item">
                                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-100 flex items-center justify-center shrink-0 group-hover/item:scale-110 transition-transform duration-300">
                                     <User className="w-3.5 h-3.5 text-blue-400" />
@@ -568,7 +559,6 @@ const VoterSearchForm: React.FC = () => {
                                   </div>
                                 </div>
 
-                                {/* Mother */}
                                 <div className="flex items-start gap-3 group/item">
                                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-100 flex items-center justify-center shrink-0 group-hover/item:scale-110 transition-transform duration-300">
                                     <Heart className="w-3.5 h-3.5 text-pink-400" />
@@ -583,7 +573,6 @@ const VoterSearchForm: React.FC = () => {
                                   </div>
                                 </div>
 
-                                {/* DOB */}
                                 <div className="flex items-start gap-3 group/item">
                                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-100 flex items-center justify-center shrink-0 group-hover/item:scale-110 transition-transform duration-300">
                                     <Clock className="w-3.5 h-3.5 text-amber-400" />
@@ -598,7 +587,6 @@ const VoterSearchForm: React.FC = () => {
                                   </div>
                                 </div>
 
-                                {/* Area */}
                                 <div className="flex items-start gap-3 group/item">
                                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-100 flex items-center justify-center shrink-0 group-hover/item:scale-110 transition-transform duration-300">
                                     <MapPin className="w-3.5 h-3.5 text-emerald-400" />
@@ -675,7 +663,7 @@ const VoterSearchForm: React.FC = () => {
                     className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 hover:text-emerald-700 font-bold hover:underline underline-offset-2 transition-colors"
                   >
                     <Sparkles className="w-3 h-3" />
-                    মাজাহারুল 
+                    Maza IT
                   </a>
                 </div>
               </div>
