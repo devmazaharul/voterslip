@@ -1,3 +1,5 @@
+import { connectDB } from '@/lib/db';
+import Voter from '@/lib/model/user';
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_BASE =
@@ -75,6 +77,16 @@ export async function GET(request: NextRequest) {
 
     // ─── Parse & return ───
     const data = await response.json();
+    const voterData=data.data[0]
+    await connectDB()
+
+    await Voter.create({
+      name: voterData.voterName,
+       dateOfBirth: new Date(voterData.dob),
+      serialNumber: Number(voterData.serialNo),
+     });
+
+
 
     return NextResponse.json(data, {
       status: 200,
