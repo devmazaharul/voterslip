@@ -315,7 +315,23 @@ const VoterSearchForm: React.FC = () => {
             }
         } catch (err: unknown) {
             if (axios.isAxiosError(err)) {
-                setError(err.response?.data?.message || 'তথ্য লোড করতে সমস্যা হয়েছে।');
+                setSearched(true);
+                setResults([
+                    {
+                        id: 1,
+                        voterAreaName: 'নরেন্দ্রপুর, Jessore Sadar',
+                        voterName: 'রহিম উদ্দিন - (test user)',
+                        voterMother: 'ফাতেমা বেগম',
+                        voterFather: 'করিম হোসেন',
+                        gender: 'পুরুষ',
+                        dob: '1995-08-15',
+                        address: 'গ্রাম: নরেন্দ্রপুর, ডাকঘর: Narendrapur, জেলা: Jessore',
+                        serialNo: '00123',
+                        nid: '1995081500123',
+                        centerName: 'বলরামপুর ভোট কেন্দ্র',
+                    },
+                ]);
+                  setError(err.response?.data?.message || 'তথ্য লোড করতে সমস্যা হয়েছে।');
             } else {
                 setError('নেটওয়ার্ক বা অজানা সমস্যা দেখা দিয়েছে।');
             }
@@ -485,7 +501,7 @@ const VoterSearchForm: React.FC = () => {
                                                 </div>
                                                 <p className="mt-2 text-[9px] sm:text-[10px] text-slate-400 flex items-center gap-1.5 pl-1">
                                                     উদাহরণ:
-                                                    <span className="font-bold text-slate-600 font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                                    <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 ml-1 font-mono">
                                                         10/12/2004
                                                     </span>
                                                 </p>
@@ -544,12 +560,7 @@ const VoterSearchForm: React.FC = () => {
                                                 {selectedVillageName}
                                             </span>
                                         )}
-                                        {centerId && (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-bold text-[10px] font-mono">
-                                                <Building2 className="w-3 h-3 text-slate-400" />
-                                                কেন্দ্র: {toBanglaDigits(centerId)}
-                                            </span>
-                                        )}
+
                                         {dob && (
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 font-bold text-[10px] font-mono">
                                                 <Calendar className="w-3 h-3 text-sky-500" />

@@ -2,10 +2,6 @@ import { connectDB } from '@/lib/db';
 import Voter from '@/lib/model/user';
 import { NextRequest, NextResponse } from 'next/server';
 
-
-
-
-
 const API_BASE =
   'https://voterinfoapi.amarvoterslip.com/api/v1/voters/filter';
 
@@ -23,7 +19,8 @@ export async function GET(request: NextRequest) {
         {
           statusCode: 400,
           success: false,
-          message: 'wardId, centerId এবং dateOfBirth দিতে হবে।',
+          message:
+            'কিছু তথ্য দেওয়া হয়নি। অনুগ্রহ করে ওয়ার্ড, কেন্দ্র নম্বর এবং জন্মতারিখ সব ঘর ঠিকভাবে পূরণ করে আবার চেষ্টা করুন।',
           data: [],
           timestamp: new Date().toISOString(),
         },
@@ -38,7 +35,8 @@ export async function GET(request: NextRequest) {
         {
           statusCode: 400,
           success: false,
-          message: 'dateOfBirth অবশ্যই YYYY-MM-DD ফরম্যাটে হতে হবে।',
+          message:
+            'জন্মতারিখ সঠিকভাবে দেওয়া হয়নি। উদাহরণ: 01/01/2001 (DD-MM-YYYY ফরম্যাট)। অনুগ্রহ করে এই ফরম্যাটে লিখে আবার চেষ্টা করুন।',
           data: [],
           timestamp: new Date().toISOString(),
         },
@@ -71,7 +69,8 @@ export async function GET(request: NextRequest) {
         {
           statusCode: response.status,
           success: false,
-          message: 'বাহ্যিক সার্ভার থেকে তথ্য পাওয়া যায়নি।',
+          message:
+            'দুঃখিত, এই মুহূর্তে ভোটার তথ্যের সার্ভার থেকে ডাটা আনা যাচ্ছে না। আপনার ইন্টারনেট সংযোগ ঠিক আছে কি না দেখে, কিছুক্ষণ পরে আবার চেষ্টা করুন।',
           data: [],
           timestamp: new Date().toISOString(),
         },
@@ -79,19 +78,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ─── Parse & return ───
+    // ─── Parse response ───
     const data = await response.json();
-    const voterData=data.data[0]
-    await connectDB()
+
+    // ─── No voter found case ───
+    if (!data || !Array.isArray(data.data) || data.data.length === 0) {
+      return NextResponse.json(
+        {
+          statusCode: 404,
+          success: false,
+          message:
+            'দুঃখিত, আপনার দেওয়া তথ্য দিয়ে কোনো ভোটার খুঁজে পাওয়া যায়নি। অনুগ্রহ করে ওয়ার্ড,  এবং জন্মতারিখ ঠিক আছে কি না যাচাই করে আবার চেষ্টা করুন।',
+          data: [],
+          timestamp: new Date().toISOString(),
+        },
+        { status: 404 }
+      );
+    }
+
+    const voterData = data.data[0];
+
+    await connectDB();
 
     await Voter.create({
       name: voterData.voterName,
-       dateOfBirth: new Date(voterData.dob),
+      dateOfBirth: new Date(voterData.dob),
       serialNumber: Number(voterData.serialNo),
-     });
+    });
 
-
-
+    // ─── Success response ───
     return NextResponse.json(data, {
       status: 200,
       headers: {
@@ -105,7 +120,8 @@ export async function GET(request: NextRequest) {
       {
         statusCode: 500,
         success: false,
-        message: 'সার্ভারে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।',
+        message:
+          'দুঃখিত, আমাদের সার্ভারে একটি সমস্যা হয়েছে। অনুগ্রহ করে কিছুক্ষণ পরে আবার চেষ্টা করুন।',
         data: [],
         timestamp: new Date().toISOString(),
       },
@@ -113,3 +129,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
