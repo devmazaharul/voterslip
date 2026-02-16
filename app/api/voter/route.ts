@@ -2,6 +2,10 @@ import { connectDB } from '@/lib/db';
 import Voter from '@/lib/model/user';
 import { NextRequest, NextResponse } from 'next/server';
 
+
+
+
+
 const API_BASE =
   'https://voterinfoapi.amarvoterslip.com/api/v1/voters/filter';
 
