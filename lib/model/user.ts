@@ -6,6 +6,7 @@ export interface IVoter extends Document {
   name: string;
   dateOfBirth: Date;
   serialNumber: number;
+  villageName:string
 }
 
 
@@ -24,6 +25,10 @@ const VoterSchema: Schema<IVoter> = new Schema(
       type: Number,
       required: true
     },
+    villageName: {
+      type: String,
+      required: true
+    }
   },
   {
     timestamps: true, 

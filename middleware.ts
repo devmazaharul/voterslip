@@ -1,39 +1,49 @@
+// middleware.ts
 import { NextRequest, NextResponse } from "next/server";
+import { TOKEN_NAME, verifyToken } from "./app/api/utils";
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const isLoggedIn = req.cookies.get("admin_logged_in")?.value === "true";
 
-  const isAuthRoute =
-    pathname === "/verify" || pathname.startsWith("/api/auth");
-  const isDashboardRoute = pathname.startsWith("/admin");
-  const isProtectedApi =
-    pathname.startsWith("/api/logs") 
+// Kon kon route protect korte hobe
+const protectedRoutes = ["/consoled"];
+const authRoutes = ["/access"];
 
-  if (isLoggedIn && pathname === "/verify") {
-    const url = new URL("/admin", req.url);
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get(TOKEN_NAME)?.value;
+
+  // Token verify koro
+  let isAuthenticated = false;
+  if (token) {
+    const payload = await verifyToken(token);
+    isAuthenticated = !!payload;
+  }
+
+  // PROTECTED ROUTES: /admin/**
+  // Jodi login na thake tahole /access e pathao
+  const isProtectedRoute = protectedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+
+  if (isProtectedRoute && !isAuthenticated) {
+    const url = new URL("/access", request.url);
+    url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
-  // প্রটেক্টেড রুট: লগইন না থাকলে /login এ পাঠাও
-  if ((isDashboardRoute || isProtectedApi) && !isLoggedIn) {
-    const loginUrl = new URL("/verify", req.url);
-    return NextResponse.redirect(loginUrl);
-  }
+  // AUTH ROUTES: /access
+  // Jodi already login thake tahole /admin e pathao
+  const isAuthRoute = authRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
 
-  // /login এবং /api/auth গুলো সবসময় allow
-  if (isAuthRoute) {
-    return NextResponse.next();
+  if (isAuthRoute && isAuthenticated) {
+    return NextResponse.redirect(new URL("/consoled", request.url));
   }
 
   return NextResponse.next();
 }
 
+// Middleware kon route e cholbe
 export const config = {
-  matcher: [
-    "/verify",
-    "/admin/:path*", // সব ড্যাশবোর্ড রুট
-    "/api/logs",
-    "/api/voter",
-  ],
+  matcher: ["/consoled/:path*", "/access/:path*"],
 };

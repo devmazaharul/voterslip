@@ -1,3 +1,4 @@
+import { SignJWT, jwtVerify } from "jose";
 export interface VillageOption {
   id: string;
   name: string;
@@ -21,3 +22,50 @@ export const VILLAGES: VillageOption[] = [
   { id: '6959', name: 'গোপালপুর', centerId: '84092' },
 
 ];
+
+export const VILLAGES_NAME = [
+  "নরেন্দ্রপুর",
+  "বলরামপুর",
+  "রামপুর",
+  "চৌঘাটা",
+  "ভাগবতিপুর",
+  "আন্দুলিয়া",
+  "ছিলুমবাড়ীয়া",
+  "জিরাট",
+  "ঘেড়াগাছা",
+  "শ্রীপদ্দি",
+  "রুপদিয়া",
+  "হাটবিলা",
+  "শাখারীগাতী",
+  "চাউলিয়া",
+  "গোপালপুর",
+];
+
+
+
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+
+// Token create koro
+export async function createToken(payload: any): Promise<string> {
+  const token = await new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d") // 7 din porjonto valid
+    .sign(secret);
+
+  return token;
+}
+
+// Token verify koro
+export async function verifyToken(token: string): Promise<any> {
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    return payload;
+  } catch (error) {
+    return null;
+  }
+}
+
+export const TOKEN_NAME="admin-token"
+export const MAX_ADMINS_ALLOW=5
