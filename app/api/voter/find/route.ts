@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(VILLAGES_NAME.includes(villageName as any))
     // ─── Village Validation ───
     if (!VILLAGES_NAME.includes(villageName as any)) {
       return NextResponse.json(
