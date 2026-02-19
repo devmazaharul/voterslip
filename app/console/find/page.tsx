@@ -492,7 +492,7 @@ export default function SearchPage() {
                             </svg>
                           </div>
                           <input
-                            type="number"
+                             type="tel"
                             value={serialNumber}
                             onChange={(e) => setSerialNumber(e.target.value)}
                             placeholder="ক্রমিক নম্বর লিখুন..."
