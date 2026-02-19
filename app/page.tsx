@@ -1098,7 +1098,7 @@ const VoterSearchForm: React.FC = () => {
         <div className="flex items-center gap-1.5 text-gray-500">
           A Product of{" "}
           <a
-            href="https://www.mazasoft.com" /* এখানে তোমার আসল লিংক বসিয়ে নিও */
+            href="https://mazaharul.site" 
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold text-gray-300 hover:text-emerald-400 transition-colors tracking-wide"
