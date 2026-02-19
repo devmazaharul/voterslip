@@ -8,7 +8,7 @@ import { TOKEN_NAME } from "../../utils";
 
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-async function getAdmin() {
+export async function getAdmin() {
   const cookieStore = await cookies();
   const token = cookieStore.get(TOKEN_NAME)?.value;
   if (!token) return null;

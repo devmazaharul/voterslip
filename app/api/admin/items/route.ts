@@ -2,9 +2,14 @@
 import { connectDB } from "@/lib/db";
 import Voter from "@/lib/model/user";
 import { NextRequest, NextResponse } from "next/server";
+import { getAdmin } from "../password-change/route";
 
 // ─── GET: List voters with search, filter, pagination ───
 export async function GET(request: NextRequest) {
+   const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectDB();
 

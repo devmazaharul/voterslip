@@ -4,7 +4,7 @@ import { TOKEN_NAME, verifyToken } from "./app/api/utils";
 
 
 // Kon kon route protect korte hobe
-const protectedRoutes = ["/consoled"];
+const protectedRoutes = ["/console"];
 const authRoutes = ["/access"];
 
 export async function middleware(request: NextRequest) {
@@ -45,5 +45,5 @@ export async function middleware(request: NextRequest) {
 
 // Middleware kon route e cholbe
 export const config = {
-  matcher: ["/consoled/:path*", "/access/:path*"],
+  matcher: ["/console/:path*", "/access/:path*"],
 };
