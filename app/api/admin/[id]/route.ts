@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
-import Voter from "@/lib/model/user";
+import VoterUser from "@/lib/model/voters";
+
 import { NextRequest, NextResponse } from "next/server";
 
 // ─── PUT: Update voter ───
@@ -12,7 +13,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const voter = await Voter.findByIdAndUpdate(id, body, {
+    const voter = await VoterUser.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
     });
@@ -46,7 +47,7 @@ export async function DELETE(
     await connectDB();
     const { id } = await params;
 
-    const voter = await Voter.findByIdAndDelete(id);
+    const voter = await VoterUser.findByIdAndDelete(id);
 
     if (!voter) {
       return NextResponse.json(

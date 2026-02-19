@@ -1,10 +1,10 @@
-// app/api/voters/route.ts (or wherever your route is)
+// app/api/voters/route.ts
 import { connectDB } from "@/lib/db";
-import Voter from "@/lib/model/user";
+import VoterUser from "@/lib/model/voters";
+import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE =
-  "https://voterinfoapi.amarvoterslip.com/api/v1/voters/filter";
+const API_BASE = "https://voterinfoapi.amarvoterslip.com/api/v1/voters/filter";
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
           statusCode: 400,
           success: false,
           message:
-            "জন্মতারিখ সঠিকভাবে দেওয়া হয়নি। উদাহরণ: 01/01/2001 (DD-MM-YYYY ফরম্যাট)। অনুগ্রহ করে এই ফরম্যাটে লিখে আবার চেষ্টা করুন।",
+            "জন্মতারিখ সঠিকভাবে দেওয়া হয়নি। উদাহরণ: 2001-01-01 (YYYY-MM-DD ফরম্যাট)। অনুগ্রহ করে এই ফরম্যাটে লিখে আবার চেষ্টা করুন।",
           data: [],
           timestamp: new Date().toISOString(),
         },
@@ -45,44 +45,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ─── External API Call ───
-    const url = new URL(API_BASE);
-    url.searchParams.set("wardId", wardId);
-    url.searchParams.set("centerId", centerId);
-    url.searchParams.set("dateOfBirth", dateOfBirth);
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      next: { revalidate: 60 },
-    });
-
-    // ─── Handle external API errors ───
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("External API Error:", response.status, errorText);
+    // ─── External API Call with Axios ───
+    let responseData;
+    try {
+      const response = await axios.get(API_BASE, {
+        params: {
+          wardId,
+          centerId,
+          dateOfBirth,
+        },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+      responseData = response.data;
+    } catch (error: any) {
+      console.error("External API Error:", error.response?.status, error.message);
 
       return NextResponse.json(
         {
-          statusCode: response.status,
+          statusCode: error.response?.status || 500,
           success: false,
           message:
             "দুঃখিত, এই মুহূর্তে ভোটার তথ্যের সার্ভার থেকে ডাটা আনা যাচ্ছে না। আপনার ইন্টারনেট সংযোগ ঠিক আছে কি না দেখে, কিছুক্ষণ পরে আবার চেষ্টা করুন।",
           data: [],
           timestamp: new Date().toISOString(),
         },
-        { status: response.status }
+        { status: error.response?.status || 500 }
       );
     }
 
-    // ─── Parse response ───
-    const data = await response.json();
-
     // ─── No voter found case ───
-    if (!data || !Array.isArray(data.data) || data.data.length === 0) {
+    if (!responseData || !Array.isArray(responseData.data) || responseData.data.length === 0) {
       return NextResponse.json(
         {
           statusCode: 404,
@@ -103,11 +98,11 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // ① External API theke je shob voter ashlo, shob gulor serial number collect koro
-    const allVoters = data.data;
+    const allVoters = responseData.data;
     const allSerialNumbers = allVoters.map((v: any) => Number(v.serialNo));
 
     // ② Database e check koro kon kon serial already ache
-    const existingVoters = await Voter.find({
+    const existingVoters = await VoterUser.find({
       serialNumber: { $in: allSerialNumbers },
     }).select("serialNumber");
 
@@ -123,17 +118,19 @@ export async function GET(request: NextRequest) {
         name: v.voterName,
         dateOfBirth: new Date(v.dob),
         serialNumber: Number(v.serialNo),
+        // ✅ API er response onujayi village set kora hoyeche. Jodi api te onno kono key thake (jemon: village_name), tahole eita update kore niben.
+        villageName: v.village || "Unknown Village", //village propert
       }));
 
     // ⑤ Jodi new voter thake tahole bulk insert koro
     if (newVoters.length > 0) {
-      await Voter.insertMany(newVoters, {
+      await VoterUser.insertMany(newVoters, {
         ordered: false, // ekta fail korleo baki gula insert hobe
       });
     }
 
     // ─── Success response ───
-    return NextResponse.json(data, {
+    return NextResponse.json(responseData, {
       status: 200,
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",

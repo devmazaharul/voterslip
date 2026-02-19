@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import {  VILLAGES_NAME } from "../../utils";
-import Voter from "@/lib/model/user";
+import VoterUser from "@/lib/model/voters";
+
 
 
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     // ─── Database Query (exact match) ───
     await connectDB();
 
-    const voter = await Voter.findOne({
+    const voter = await VoterUser.findOne({
       serialNumber: serial,
       villageName: villageName,
     }).select("name dateOfBirth serialNumber villageName createdAt");

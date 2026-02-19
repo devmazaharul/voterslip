@@ -1,8 +1,8 @@
 // app/api/voters/route.ts
 import { connectDB } from "@/lib/db";
-import Voter from "@/lib/model/user";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdmin } from "../password-change/route";
+import VoterUser from "@/lib/model/voters";
 
 // ─── GET: List voters with search, filter, pagination ───
 export async function GET(request: NextRequest) {
@@ -40,12 +40,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Date of birth filter
+    // // Date of birth filter
+    // if (fromDate || toDate) {
+    //   query.dateOfBirth = {};
+    //   if (fromDate) query.dateOfBirth.$gte = new Date(fromDate);
+    //   if (toDate) query.dateOfBirth.$lte = new Date(toDate);
+    // }
+
+
     if (fromDate || toDate) {
-      query.dateOfBirth = {};
-      if (fromDate) query.dateOfBirth.$gte = new Date(fromDate);
-      if (toDate) query.dateOfBirth.$lte = new Date(toDate);
+      query.updatedAt = {};
+      if (fromDate) query.updatedAt.$gte = new Date(fromDate);
+      
+      if (toDate) {
+        // toDate er diner ekdom shesh somoy (23:59:59) set korar jonno
+        const endOfDay = new Date(toDate);
+        endOfDay.setUTCHours(23, 59, 59, 999); 
+        query.updatedAt.$lte = endOfDay;
+      }
     }
+
 
     // Sort
     const sort: any = {};
@@ -53,11 +67,11 @@ export async function GET(request: NextRequest) {
 
     // Pagination
     const skip = (page - 1) * limit;
-    const total = await Voter.countDocuments(query);
+    const total = await VoterUser.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
     // Fetch voters
-    const voters = await Voter.find(query)
+    const voters = await VoterUser.find(query)
       .sort(sort)
       .skip(skip)
       .limit(limit)
@@ -89,7 +103,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { name, dateOfBirth, serialNumber } = body;
+    const { name, dateOfBirth, serialNumber,villageName } = body;
 
     if (!name || !dateOfBirth || !serialNumber) {
       return NextResponse.json(
@@ -99,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check duplicate serial
-    const existing = await Voter.findOne({ serialNumber });
+    const existing = await VoterUser.findOne({ serialNumber,villageName });
     if (existing) {
       return NextResponse.json(
         { success: false, message: "Serial number already exists" },
@@ -107,7 +121,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const voter = await Voter.create({ name, dateOfBirth, serialNumber });
+    const voter = await VoterUser.create({ name, dateOfBirth, serialNumber,villageName });
 
     return NextResponse.json(
       { success: true, data: voter, message: "Voter created!" },

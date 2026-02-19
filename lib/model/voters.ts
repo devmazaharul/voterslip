@@ -36,7 +36,7 @@ const VoterSchema: Schema<IVoter> = new Schema(
 );
 
 // 3️⃣ Model
-const Voter: Model<IVoter> =
-  mongoose.models.Voter || mongoose.model<IVoter>("Voter", VoterSchema);
+const VoterUser: Model<IVoter> =
+  mongoose.models.VoterUser || mongoose.model<IVoter>("VoterUser", VoterSchema);
 
-export default Voter;
+export default VoterUser;
