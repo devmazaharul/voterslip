@@ -1,9 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // Viewport ইমপোর্ট করতে হবে
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+
+// মোবাইল অ্যাপের মতো অটো-জুম অফ এবং ফিক্সড স্কেল করার জন্য:
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // এটি পিঞ্চ-জুম বন্ধ করবে
+  themeColor: "#0f172a", // আপনার bg-slate-900 এর সাথে মিলিয়ে মোবাইল স্ট্যাটাস বারের কালার
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://voterserial.vercel.app"),
@@ -55,7 +64,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="bn">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-900`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-900 touch-manipulation overscroll-none`}>{children}</body>
     </html>
   );
 }

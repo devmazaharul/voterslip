@@ -95,7 +95,7 @@ const useCopy = () => {
 };
 
 // ──────────────────────────────────────────────
-// CUSTOM SELECT — DARK
+// CUSTOM SELECT — DARK (NO SEARCH)
 // ──────────────────────────────────────────────
 const CustomSelect: React.FC<{
     value: string;
@@ -103,38 +103,25 @@ const CustomSelect: React.FC<{
     options: VillageOption[];
 }> = ({ value, onChange, options }) => {
     const [open, setOpen] = useState(false);
-    const [search, setSearch] = useState('');
     const ref = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
 
     const selected = options.find((o) => o.id === value);
-    const filtered = options.filter((o) =>
-        o.name.toLowerCase().includes(search.toLowerCase())
-    );
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) {
                 setOpen(false);
-                setSearch('');
             }
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    useEffect(() => {
-        if (open && inputRef.current) inputRef.current.focus();
-    }, [open]);
-
     return (
         <div ref={ref} className="relative">
             <button
                 type="button"
-                onClick={() => {
-                    setOpen(!open);
-                    setSearch('');
-                }}
+                onClick={() => setOpen(!open)}
                 className={`w-full flex items-center gap-3 pl-4 pr-4 py-3.5 bg-white/[0.03] border rounded-xl text-left transition-all duration-300 cursor-pointer group ${
                     open
                         ? 'border-purple-500/30 ring-2 ring-purple-500/15 bg-purple-500/[0.02]'
@@ -204,33 +191,16 @@ const CustomSelect: React.FC<{
                 <>
                     <div
                         className="fixed inset-0 z-10"
-                        onClick={() => {
-                            setOpen(false);
-                            setSearch('');
-                        }}
+                        onClick={() => setOpen(false)}
                     />
                     <div className="absolute z-20 top-full left-0 right-0 mt-2 bg-[#12121c] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-[dropIn_0.2s_ease]">
-                        <div className="p-2.5 border-b border-white/[0.06]">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="গ্রামের নাম খুঁজুন..."
-                                    className="w-full pl-9 pr-3 py-2.5 bg-white/[0.04] border border-white/[0.06] rounded-lg text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
-                                    autoFocus
-                                />
-                            </div>
-                        </div>
                         <div className="max-h-56 overflow-y-auto py-1 px-1.5">
-                            {filtered.length === 0 ? (
+                            {options.length === 0 ? (
                                 <div className="text-center py-6">
                                     <p className="text-xs text-gray-600">কোনো গ্রাম পাওয়া যায়নি</p>
                                 </div>
                             ) : (
-                                filtered.map((opt, i) => {
+                                options.map((opt, i) => {
                                     const isSelected = opt.id === value;
                                     return (
                                         <button
@@ -239,7 +209,6 @@ const CustomSelect: React.FC<{
                                             onClick={() => {
                                                 onChange(opt.id);
                                                 setOpen(false);
-                                                setSearch('');
                                             }}
                                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 cursor-pointer mb-0.5 ${
                                                 isSelected
@@ -1092,7 +1061,7 @@ const VoterSearchForm: React.FC = () => {
   
 
         {/* Dot Divider (Hidden on very small screens) */}
-        <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-gray-600"></span>
+        <span className="hidden sm:inline-block w-1 h-1  "></span>
 
         {/* MazaSoft Link */}
         <div className="flex items-center gap-1.5 text-gray-500">
