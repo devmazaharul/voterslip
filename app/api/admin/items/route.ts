@@ -1,85 +1,62 @@
-// app/api/voters/route.ts
 import { connectDB } from "@/lib/db";
-import { NextRequest, NextResponse } from "next/server";
-import { getAdmin } from "../password-change/route";
 import VoterUser from "@/lib/model/voters";
+import { NextRequest, NextResponse } from "next/server";
 
-// ─── GET: List voters with search, filter, pagination ───
-export async function GET(request: NextRequest) {
-   const admin = await getAdmin();
-    if (!admin) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-    }
+// ─── GET: List Voters ───
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const { searchParams } = new URL(request.url);
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const search = url.searchParams.get("search") || "";
+    const sortBy = url.searchParams.get("sortBy") || "createdAt";
+    const sortOrder = url.searchParams.get("sortOrder") || "desc";
+    const fromDate = url.searchParams.get("fromDate") || "";
+    const toDate = url.searchParams.get("toDate") || "";
 
-    // Query params
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const search = searchParams.get("search") || "";
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
-    const fromDate = searchParams.get("fromDate") || "";
-    const toDate = searchParams.get("toDate") || "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filter: any = {};
 
-    // Build query
-    const query: any = {};
-
-    // Search by name or serial number
     if (search) {
-      const searchNum = parseInt(search);
-      if (!isNaN(searchNum)) {
-        query.$or = [
-          { name: { $regex: search, $options: "i" } },
-          { serialNumber: searchNum },
-        ];
-      } else {
-        query.name = { $regex: search, $options: "i" };
-      }
+      const serialNum = parseInt(search);
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { mother: { $regex: search, $options: "i" } },
+        { husband_father: { $regex: search, $options: "i" } },
+        { villageName: { $regex: search, $options: "i" } },
+        ...(isNaN(serialNum) ? [] : [{ serialNumber: serialNum }]),
+      ];
     }
-
-    // // Date of birth filter
-    // if (fromDate || toDate) {
-    //   query.dateOfBirth = {};
-    //   if (fromDate) query.dateOfBirth.$gte = new Date(fromDate);
-    //   if (toDate) query.dateOfBirth.$lte = new Date(toDate);
-    // }
-
 
     if (fromDate || toDate) {
-      query.updatedAt = {};
-      if (fromDate) query.updatedAt.$gte = new Date(fromDate);
-      
+      filter.createdAt = {};
+      if (fromDate) filter.createdAt.$gte = new Date(fromDate);
       if (toDate) {
-        // toDate er diner ekdom shesh somoy (23:59:59) set korar jonno
-        const endOfDay = new Date(toDate);
-        endOfDay.setUTCHours(23, 59, 59, 999); 
-        query.updatedAt.$lte = endOfDay;
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
       }
     }
 
-
-    // Sort
-    const sort: any = {};
-    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
-
-    // Pagination
-    const skip = (page - 1) * limit;
-    const total = await VoterUser.countDocuments(query);
+    const total = await VoterUser.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
 
-    // Fetch voters
-    const voters = await VoterUser.find(query)
-      .sort(sort)
+    const sortObj: Record<string, 1 | -1> = {
+      [sortBy]: sortOrder === "asc" ? 1 : -1,
+    };
+
+    const data = await VoterUser.find(filter)
+      .sort(sortObj)
       .skip(skip)
       .limit(limit)
       .lean();
 
     return NextResponse.json({
       success: true,
-      data: voters,
+      data,
       pagination: {
         page,
         limit,
@@ -89,47 +66,75 @@ export async function GET(request: NextRequest) {
         hasPrev: page > 1,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error("GET items error:", error);
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, message: "Server error" },
       { status: 500 }
     );
   }
 }
 
-// ─── POST: Create new voter ───
-export async function POST(request: NextRequest) {
+// ─── POST: Add Voter (addedBy = "self") ───
+export async function POST(req: NextRequest) {
   try {
     await connectDB();
+    const body = await req.json();
 
-    const body = await request.json();
-    const { name, dateOfBirth, serialNumber,villageName } = body;
+    const {
+      name,
+      dateOfBirth,
+      serialNumber,
+      villageName,
+      mother,
+      husband_father,
+    } = body;
 
-    if (!name || !dateOfBirth || !serialNumber) {
+    if (
+      !name ||
+      !dateOfBirth ||
+      !serialNumber ||
+      !villageName ||
+      !mother ||
+      !husband_father
+    ) {
       return NextResponse.json(
-        { success: false, message: "All fields are required" },
+        { success: false, message: "সব ফিল্ড পূরণ করতে হবে" },
         { status: 400 }
       );
     }
 
-    // Check duplicate serial
-    const existing = await VoterUser.findOne({ serialNumber,villageName });
-    if (existing) {
+    // ডুপ্লিকেট চেক
+    const exists = await VoterUser.findOne({ serialNumber, villageName });
+    if (exists) {
       return NextResponse.json(
-        { success: false, message: "Serial number already exists" },
-        { status: 409 }
+        {
+          success: false,
+          message: `Serial #${serialNumber} ইতিমধ্যে ${villageName} তে আছে`,
+        },
+        { status: 400 }
       );
     }
 
-    const voter = await VoterUser.create({ name, dateOfBirth, serialNumber,villageName });
+    const voter = await VoterUser.create({
+      name,
+      dateOfBirth: new Date(dateOfBirth),
+      serialNumber,
+      villageName,
+      mother,
+      husband_father,
+      addedBy: "self", // ← ম্যানুয়ালি যোগ করা = self
+    });
 
+    return NextResponse.json({
+      success: true,
+      message: "Voter added successfully",
+      data: voter,
+    });
+  } catch (error) {
+    console.error("POST items error:", error);
     return NextResponse.json(
-      { success: true, data: voter, message: "Voter created!" },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, message: "Server error" },
       { status: 500 }
     );
   }

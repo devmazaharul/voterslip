@@ -1,8 +1,7 @@
 "use client";
-
-import { VILLAGES_NAME } from "@/app/api/utils";
 import { useState } from "react";
 import { useAdminLayout } from "../components/contex";
+import { VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
 
 interface VoterResult {
   name: string;
@@ -23,7 +22,7 @@ export default function SearchPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [villageSearch, setVillageSearch] = useState("");
 
-  const filteredVillages = VILLAGES_NAME.filter((v) =>
+  const filteredVillages = VILLAGES_NAME_NEW.filter((v) =>
     v.includes(villageSearch)
   );
 
@@ -965,11 +964,11 @@ export default function SearchPage() {
                       অন্তর্ভুক্ত গ্রামসমূহ
                     </h3>
                     <span className="text-[9px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full ml-auto border border-blue-500/10">
-                      {toBangla(VILLAGES_NAME.length)} টি
+                      {toBangla(VILLAGES_NAME_NEW.length)} টি
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {VILLAGES_NAME.map((village) => (
+                    {VILLAGES_NAME_NEW.map((village) => (
                       <button
                         key={village}
                         onClick={() => {

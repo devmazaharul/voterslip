@@ -1,14 +1,16 @@
+// models/VoterUser.ts
 
 import mongoose, { Schema, Document, Model } from "mongoose";
-
 
 export interface IVoter extends Document {
   name: string;
   dateOfBirth: Date;
   serialNumber: number;
-  villageName:string
+  villageName: string;
+  mother: string;
+  husband_father: string;
+  addedBy:string
 }
-
 
 const VoterSchema: Schema<IVoter> = new Schema(
   {
@@ -23,19 +25,34 @@ const VoterSchema: Schema<IVoter> = new Schema(
     },
     serialNumber: {
       type: Number,
-      required: true
+      required: true,
     },
     villageName: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
+    mother: {
+      type: String,
+      default:"unknown"
+    },
+    husband_father: {
+      type: String,
+       default:"unknown"
+    },
+    addedBy: {
+    type: String,
+    enum: ["system", "self"], 
+    default:"system"
+  }
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 
-// 3️⃣ Model
+// ডুপ্লিকেট চেক দ্রুত করতে compound index
+VoterSchema.index({ serialNumber: 1, villageName: 1 }, { unique: true });
+
 const VoterUser: Model<IVoter> =
   mongoose.models.VoterUser || mongoose.model<IVoter>("VoterUser", VoterSchema);
 
