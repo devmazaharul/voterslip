@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
           wardId,
           centerId,
           dateOfBirth,
+          IsArea:wardId=="নরেন্দ্রপুর"?false:true
         },
         headers: {
           "Content-Type": "application/json",

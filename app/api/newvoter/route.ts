@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
         DOB,
         Ward,
         Identification: Identification || DEFAULT_ID,
+        isArea:Ward=="নরেন্দ্রপুর"?false:true
       }),
     });
 

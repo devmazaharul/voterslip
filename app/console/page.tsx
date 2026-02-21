@@ -37,9 +37,6 @@ interface Stats {
   latestSerial: number;
 }
 
-// ╔═══════════════════════════════════╗
-// ║ "details" modal type যোগ করা হলো ║
-// ╚═══════════════════════════════════╝
 type ModalType = "add" | "edit" | "delete" | "details" | null;
 
 export default function AdminDashboard() {
@@ -78,6 +75,11 @@ export default function AdminDashboard() {
   const [formError, setFormError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [villageSelectOpen, setVillageSelectOpen] = useState(false);
+
+  // ╔══════════════════════════════════════╗
+  // ║ Refresh spinning state              ║
+  // ╚══════════════════════════════════════╝
+  const [refreshing, setRefreshing] = useState(false);
 
   // ─── Fetch ───
   const fetchStats = useCallback(async () => {
@@ -128,6 +130,23 @@ export default function AdminDashboard() {
     const t = setTimeout(() => setSearch(searchInput), 400);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  // ╔══════════════════════════════════════════════╗
+  // ║ handleRefresh — refetch without page reload  ║
+  // ╚══════════════════════════════════════════════╝
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchVoters(pagination.page), fetchStats()]);
+      setSuccessMsg("Data refreshed!");
+      setTimeout(() => setSuccessMsg(""), 2500);
+    } catch {
+      // silently fail — errors handled inside individual fetchers
+    } finally {
+      // keep spinning for at least 600ms so user can see feedback
+      setTimeout(() => setRefreshing(false), 600);
+    }
+  };
 
   // ─── CRUD ───
   const resetForm = () => {
@@ -266,9 +285,6 @@ export default function AdminDashboard() {
     setModal("delete");
   };
 
-  // ╔══════════════════════════════════════╗
-  // ║ Details Modal — সবার জন্য কাজ করবে  ║
-  // ╚══════════════════════════════════════╝
   const openDetails = (v: Voter) => {
     setSelectedVoter(v);
     setModal("details");
@@ -347,9 +363,6 @@ export default function AdminDashboard() {
   ];
   const filledCount = formFields.filter(Boolean).length;
 
-  // ╔══════════════════════════════════════════╗
-  // ║ Copy to Clipboard                        ║
-  // ╚══════════════════════════════════════════╝
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -380,8 +393,40 @@ export default function AdminDashboard() {
               />
             </svg>
           </button>
-          <h1 className="text-base font-semibold hidden lg:block">Dashboard</h1>
-          <div className="flex items-center gap-3">
+          <h1 className="text-base font-semibold hidden lg:block">
+            Dashboard
+          </h1>
+          <div className="flex items-center gap-2">
+            {/* ╔══════════════════════════════════════════╗ */}
+            {/* ║ ★ REFRESH BUTTON — নতুন যোগ করা হয়েছে ★ ║ */}
+            {/* ╚══════════════════════════════════════════╝ */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh data"
+              className="relative group p-2 cursor-pointer rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] hover:border-purple-500/20 text-gray-400 hover:text-white disabled:cursor-not-allowed transition-all active:scale-90"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform duration-500 ${
+                  refreshing ? "animate-spin" : "group-hover:rotate-180"
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
+                />
+              </svg>
+              {/* Pulse ring while refreshing */}
+              {refreshing && (
+                <span className="absolute inset-0 rounded-xl border-2 border-purple-500/40 animate-ping pointer-events-none" />
+              )}
+            </button>
+
             <button
               onClick={openAdd}
               className="flex cursor-pointer items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-xs font-medium hover:shadow-lg hover:shadow-purple-500/20 transition-all active:scale-95"
@@ -606,9 +651,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════ */}
-        {/* ═══ TABLE — Center কলাম সরানো, Details বাটন যোগ ═══   */}
-        {/* ═══════════════════════════════════════════════════════ */}
+        {/* ═══ TABLE ═══ */}
         <div className="bg-white/[0.02] backdrop-blur border border-white/[0.06] rounded-2xl overflow-hidden">
           {/* Desktop */}
           <div className="hidden md:block overflow-x-auto">
@@ -699,10 +742,8 @@ export default function AdminDashboard() {
                           <AddedByBadge addedBy={v.addedBy} />
                         </td>
 
-                        {/* ═══ Actions Column — Details + Edit + Delete ═══ */}
                         <td className="px-3 py-2.5">
                           <div className="flex items-center justify-end gap-1">
-                            {/* ═══ DETAILS BUTTON — সবার জন্য ═══ */}
                             <button
                               onClick={() => openDetails(v)}
                               className="p-1.5 cursor-pointer text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
@@ -790,7 +831,7 @@ export default function AdminDashboard() {
             </table>
           </div>
 
-          {/* ═══ Mobile Cards — Details বাটন যোগ ═══ */}
+          {/* ═══ Mobile Cards ═══ */}
           <div className="md:hidden divide-y divide-white/[0.04]">
             {loading ? (
               [...Array(3)].map((_, i) => (
@@ -849,9 +890,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      {/* ═══ Mobile Actions — Details + Edit/Delete ═══ */}
                       <div className="flex items-center gap-0.5 shrink-0">
-                        {/* Details — সবার জন্য */}
                         <button
                           onClick={() => openDetails(v)}
                           className="p-2 cursor-pointer text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
@@ -1005,9 +1044,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════ */}
-      {/* ═══ DETAILS MODAL — সব তথ্য সুন্দর করে দেখায় ═══        */}
-      {/* ══════════════════════════════════════════════════════════ */}
+      {/* ═══ DETAILS MODAL ═══ */}
       {modal === "details" && selectedVoter && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
@@ -1020,7 +1057,7 @@ export default function AdminDashboard() {
           <div className="relative w-full max-w-md animate-[scaleIn_0.2s_ease]">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/15 via-blue-600/15 to-cyan-600/15 rounded-2xl blur-lg" />
             <div className="relative bg-[#111118] border border-white/[0.08] rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-              {/* ═══ Header ═══ */}
+              {/* Header */}
               <div className="relative bg-gradient-to-br from-purple-500/[0.08] via-transparent to-blue-500/[0.06] px-6 pt-6 pb-5">
                 <div
                   className="absolute inset-0 opacity-[0.03]"
@@ -1032,7 +1069,6 @@ export default function AdminDashboard() {
                 <div className="relative">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      {/* Avatar */}
                       <div className="relative">
                         <div className="w-16 h-16 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-2xl flex items-center justify-center text-2xl font-black text-white border border-purple-500/20 shadow-lg shadow-purple-500/10">
                           {selectedVoter.name.charAt(0).toUpperCase()}
@@ -1084,7 +1120,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ═══ Voter Number Card (NID) ═══ */}
+              {/* Voter Number Card */}
               <div className="px-6 pt-4">
                 <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500/[0.08] to-cyan-500/[0.08] border border-purple-500/10 p-4">
                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full" />
@@ -1141,10 +1177,9 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ═══ Info Grid ═══ */}
+              {/* Info Grid */}
               <div className="px-6 py-4">
                 <div className="grid grid-cols-2 gap-3">
-                  {/* পিতা/স্বামী */}
                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-white/[0.08] transition-all">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/10 flex items-center justify-center">
@@ -1171,7 +1206,6 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
-                  {/* মাতা */}
                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-white/[0.08] transition-all">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/10 flex items-center justify-center">
@@ -1198,7 +1232,6 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
-                  {/* জন্ম তারিখ */}
                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-white/[0.08] transition-all">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/10 flex items-center justify-center">
@@ -1228,7 +1261,6 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
-                  {/* গ্রাম */}
                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-white/[0.08] transition-all">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/10 flex items-center justify-center">
@@ -1263,7 +1295,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ═══ Polling Center (Table থেকে সরিয়ে এখানে) ═══ */}
+              {/* Polling Center */}
               <div className="px-6 pb-4">
                 <div className="bg-gradient-to-r from-emerald-500/[0.06] to-teal-500/[0.04] border border-emerald-500/10 rounded-xl p-4">
                   <div className="flex items-center gap-3">
@@ -1294,7 +1326,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ═══ Meta Info ═══ */}
+              {/* Meta Info */}
               <div className="px-6 pb-4">
                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl divide-y divide-white/[0.04]">
                   <div className="flex items-center justify-between px-4 py-2.5">
@@ -1389,7 +1421,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ═══ Footer Actions ═══ */}
+              {/* Footer Actions */}
               <div className="px-6 pb-5">
                 <div className="flex items-center gap-2.5">
                   <button

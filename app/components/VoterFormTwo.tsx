@@ -956,7 +956,7 @@ const VoterFormTwo: React.FC = () => {
                   <div className="space-y-4 max-h-[700px] overflow-y-auto pr-1">
                     {results.map((voter, index) => (
                       <VoterCard
-                        key={voter._id || voter.userId}
+                        key={voter.userId || index}
                         voter={voter}
                         index={index}
                       />
