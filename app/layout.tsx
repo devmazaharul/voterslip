@@ -22,8 +22,6 @@ export const metadata: Metadata = {
   },
   description: "যশোর সদর উপজেলার ১৪ নং ইউনিয়নের ভোটার তালিকা, ভোটকেন্দ্র এবং ভোটার নম্বর অনলাইনে অনুসন্ধান করুন। জন্ম তারিখ ও গ্রাম দিয়ে সহজেই আপনার তথ্য যাচাই করুন।",
   keywords: ["ভোটার তথ্য", "যশোর সদর", "১৪ নং ইউনিয়ন", "ভোটকেন্দ্র", "বাংলাদেশ নির্বাচন কমিশন", "NID Info", "Jashore Sadar", "Narendrapur Union"],
-  authors: [{ name: "Mazaharul Islam", url: "https://mazaharul.site" }],
-  creator: "Mazaharul Islam",
   publisher: "Jashore Sadar Digital Seba",
   openGraph: {
     title: "ভোটকেন্দ্র ও ভোটার তথ্য অনুসন্ধান | যশোর সদর",
@@ -46,7 +44,6 @@ export const metadata: Metadata = {
     title: "ভোটার তথ্য অনুসন্ধান - যশোর সদর ১৪ নং ইউনিয়ন",
     description: "অনলাইনে আপনার ভোটকেন্দ্র এবং ভোটার তথ্য যাচাই করুন।",
     images: ["/voting_system_2.jpg"],
-    creator: "@mazaharul",
   },
   robots: {
     index: true,

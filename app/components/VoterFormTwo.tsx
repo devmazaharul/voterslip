@@ -1019,19 +1019,19 @@ const VoterFormTwo: React.FC = () => {
               <span>
                 Developed by{' '}
                 <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-                  Mazaharul
+                  unknown
                 </span>
               </span>
               <span className="hidden sm:inline-block w-1 h-1" />
               <div className="flex items-center gap-1.5 text-gray-500">
                 A Product of{' '}
                 <a
-                  href="https://mazaharul.site"
+                  href="https://unknown.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-gray-300 hover:text-emerald-400 transition-colors"
                 >
-                  MazaSoft
+                  unknown
                 </a>
               </div>
             </div>

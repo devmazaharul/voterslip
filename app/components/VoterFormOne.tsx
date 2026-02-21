@@ -1040,44 +1040,43 @@ const VoterFormOne: React.FC = () => {
 
 {/* ═══ Premium Footer ═══ */}
 
-<div className="relative mt-12 py-6 border-t border-white/[0.08] overflow-hidden">
-      
-      {/* Soft Glow Background */}
+{/* <div className="relative mt-12 py-6 border-t border-white/[0.08] overflow-hidden">
+    
       <div className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none">
         <div className="w-[300px] h-[80px] bg-emerald-500/10 blur-[50px] rounded-full" />
       </div>
 
       <div className="relative flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-xs">
         
-        {/* Developer Info */}
+      
      
           <Sparkles className="w-4 h-4 text-indigo-400 group-hover:rotate-12 transition-transform duration-300" />
           <span>
             Developed by{" "}
             <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-              Mazaharul
+              unknown
             </span>
           </span>
   
 
-        {/* Dot Divider (Hidden on very small screens) */}
+     
         <span className="hidden sm:inline-block w-1 h-1  "></span>
 
-        {/* MazaSoft Link */}
+     
         <div className="flex items-center gap-1.5 text-gray-500">
           A Product of{" "}
           <a
-            href="https://mazaharul.site" 
+            href="https://unknown.com" 
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold text-gray-300 hover:text-emerald-400 transition-colors tracking-wide"
           >
-            MazaSoft
+            unknown
           </a>
         </div>
 
       </div>
-    </div>
+    </div> */}
 
 
 
