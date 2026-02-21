@@ -48,7 +48,7 @@ export interface VillageOption {
 }
 
 export const VILLAGES_NAME_NEW: string[] = [
-  "নরেন্দ্রপুর",
+
   "বলরামপুর",
   "রামপুর",
   "চৌঘাটা",
@@ -65,7 +65,8 @@ export const VILLAGES_NAME_NEW: string[] = [
   "গোপালপুর",
   "নরেন্দ্রপুর (১নং ওয়ার্ড অংশ)",
   "নরেন্দ্রপুর (২নং ওয়ার্ড অংশ)",
-  "নরেন্দ্রপুর (৩নং ওয়ার্ড অংশ)"
+  "নরেন্দ্রপুর (৩নং ওয়ার্ড অংশ)",
+    "নরেন্দ্রপুর",
 ];
 
 // VILLAGES_NAME থেকে VillageOption[] তৈরি

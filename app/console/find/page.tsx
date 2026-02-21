@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useAdminLayout } from "../components/contex";
-import { VILLAGES_NAME } from "@/app/api/utils";
+import { VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
 
 // ╔══════════════════════════════════════════╗
 // ║ নতুন Model অনুযায়ী VoterResult টাইপ     ║
@@ -34,7 +34,7 @@ export default function SearchPage() {
   const [villageSearch, setVillageSearch] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const filteredVillages = VILLAGES_NAME.filter((v) =>
+  const filteredVillages = VILLAGES_NAME_NEW.filter((v) =>
     v.includes(villageSearch)
   );
 
@@ -677,11 +677,11 @@ export default function SearchPage() {
                     </div>
                     <h3 className="text-xs font-semibold text-gray-300">অন্তর্ভুক্ত গ্রামসমূহ</h3>
                     <span className="text-[9px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full ml-auto border border-blue-500/10">
-                      {toBangla(VILLAGES_NAME.length)} টি
+                      {toBangla(VILLAGES_NAME_NEW.length)} টি
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {VILLAGES_NAME.map((v) => (
+                    {VILLAGES_NAME_NEW.map((v) => (
                       <button
                         key={v}
                         onClick={() => { setVillage(v); setDropdownOpen(false); }}
