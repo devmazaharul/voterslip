@@ -204,7 +204,7 @@ export default function AdminDashboard() {
     setFormError("");
     setFormLoading(true);
     try {
-      const res = await fetch(`/api/admin/${selectedVoter._id}`, {
+      const res = await fetch(`/api/admin/items/${selectedVoter._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
     if (!selectedVoter) return;
     setFormLoading(true);
     try {
-      const res = await fetch(`/api/admin/${selectedVoter._id}`, {
+      const res = await fetch(`/api/admin/items/${selectedVoter._id}`, {
         method: "DELETE",
       });
       const data = await res.json();
