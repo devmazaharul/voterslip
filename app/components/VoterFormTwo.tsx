@@ -858,6 +858,14 @@ const VoterFormTwo: React.FC = () => {
                   )}
                 </span>
               )}
+              {searched && results.length>0 && 
+                <button
+                        onClick={handleReset}
+                        className="text-[10px] font-bold text-gray-500 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] px-2.5 py-1 rounded-lg border border-white/[0.06] transition-all cursor-pointer"
+                      >
+                        নতুন
+                      </button>
+              }
             </div>
           )}
 
@@ -903,12 +911,7 @@ const VoterFormTwo: React.FC = () => {
                         )}{' '}
                         জন
                       </span>
-                      <button
-                        onClick={handleReset}
-                        className="text-[10px] font-bold text-gray-500 hover:text-white bg-white/[0.03] hover:bg-white/[0.06] px-2.5 py-1 rounded-lg border border-white/[0.06] transition-all cursor-pointer"
-                      >
-                        নতুন
-                      </button>
+                    
                     </>
                   )}
                 </div>
