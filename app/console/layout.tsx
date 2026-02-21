@@ -14,6 +14,7 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [admin, setAdmin] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
@@ -28,7 +29,6 @@ export default function AdminLayout({
     verify();
   }, []);
 
-  // ─── Logout (actual) ───
   const performLogout = async () => {
     setLoggingOut(true);
     try {
@@ -41,19 +41,17 @@ export default function AdminLayout({
     }
   };
 
-  // ─── This is what pages call — it opens the modal ───
   const handleLogout = async () => {
     setLogoutModal(true);
   };
 
-  // ─── Nav Items Config ───
   const navItems = [
     {
       label: "Dashboard",
       href: "/console",
       icon: (
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -70,12 +68,12 @@ export default function AdminLayout({
     {
       label: "Find",
       href: "/console/find",
-      icon: <Search size={16} />,
+      icon: <Search size={14} />,
     },
     {
       label: "Control",
       href: "/console/control",
-      icon: <SettingsIcon size={16} />,
+      icon: <SettingsIcon size={14} />,
     },
   ];
 
@@ -111,18 +109,20 @@ export default function AdminLayout({
           />
         )}
 
-        {/* Sidebar */}
+        {/* ═══════════════════════════════════════ */}
+        {/* ═══ SIDEBAR — w-48, compact spacing ═══ */}
+        {/* ═══════════════════════════════════════ */}
         <aside
-          className={`fixed top-0 left-0 h-full w-64 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] z-50 transform transition-transform duration-300 lg:translate-x-0 ${
+          className={`fixed top-0 left-0 h-full w-48 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] z-50 transform transition-transform duration-300 lg:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="p-5">
-            {/* Logo */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+          <div className="p-3">
+            {/* Logo — compact */}
+            <div className="flex items-center gap-2 mb-5 px-1">
+              <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
                 <svg
-                  className="w-5 h-5 text-white"
+                  className="w-3.5 h-3.5 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -136,13 +136,15 @@ export default function AdminLayout({
                 </svg>
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white">VoterAdmin</h2>
-                <p className="text-[10px] text-gray-500">Management Panel</p>
+                <h2 className="text-[11px] font-bold text-white leading-tight">
+                  VoterAdmin
+                </h2>
+                <p className="text-[8px] text-gray-600">Panel</p>
               </div>
             </div>
 
-            {/* Dynamic Nav */}
-            <nav className="space-y-1">
+            {/* Nav — tight */}
+            <nav className="space-y-0.5">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -150,7 +152,7 @@ export default function AdminLayout({
                   onClick={() => setSidebarOpen(false)}
                 >
                   <button
-                    className={`w-full cursor-pointer flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                    className={`w-full cursor-pointer flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all duration-200 ${
                       isActive(item.href)
                         ? "bg-purple-500/10 border border-purple-500/20 text-purple-300"
                         : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.03] border border-transparent"
@@ -164,25 +166,25 @@ export default function AdminLayout({
             </nav>
           </div>
 
-          {/* Admin Info */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/[0.06]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-xs font-bold">
+          {/* Admin Info — compact */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-md flex items-center justify-center text-[9px] font-bold shrink-0">
                 {admin?.name?.charAt(0)?.toUpperCase() || "A"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-white truncate">
+                <p className="text-[10px] font-medium text-white truncate">
                   {admin?.name || admin?.phoneNumber || "Admin"}
                 </p>
-                <p className="text-[10px] text-gray-500">Administrator</p>
+                <p className="text-[8px] text-gray-600">Admin</p>
               </div>
               <button
                 onClick={() => setLogoutModal(true)}
-                className="p-1.5 cursor-pointer text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/5"
+                className="p-1 cursor-pointer text-gray-600 hover:text-red-400 transition-colors rounded-md hover:bg-red-500/5"
                 title="Logout"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-3 h-3"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -199,38 +201,30 @@ export default function AdminLayout({
           </div>
         </aside>
 
-        <main className="lg:ml-64 relative">{children}</main>
+        {/* ★ main margin updated: lg:ml-48 */}
+        <main className="lg:ml-48 relative">{children}</main>
 
-        {/* ═══════════════════════════════════════ */}
-        {/* ═══════ LOGOUT CONFIRMATION MODAL ═══════ */}
-        {/* ═══════════════════════════════════════ */}
+        {/* ═══ LOGOUT MODAL ═══ */}
         {logoutModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            {/* Overlay */}
             <div
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
               onClick={() => {
                 if (!loggingOut) setLogoutModal(false);
               }}
             />
-
-            {/* Modal */}
-            <div className="relative w-full max-w-[320px] animate-[modalIn_0.25s_ease]">
-              {/* Glow */}
+            <div className="relative w-full max-w-[300px] animate-[modalIn_0.25s_ease]">
               <div className="absolute -inset-0.5 bg-gradient-to-b from-red-600/15 to-orange-600/10 rounded-2xl blur-xl" />
-
               <div className="relative bg-[#111118] border border-white/[0.08] rounded-2xl overflow-hidden">
-                {/* Top Red Accent */}
                 <div className="h-[2px] bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-
-                <div className="p-6">
+                <div className="p-5">
                   {/* Icon */}
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-3">
                     <div className="relative">
                       <div className="absolute -inset-2 bg-red-500/10 rounded-full blur-xl animate-[pulse_2s_ease-in-out_infinite]" />
-                      <div className="relative w-14 h-14 bg-gradient-to-br from-red-500/15 to-orange-500/15 rounded-2xl flex items-center justify-center border border-red-500/15">
+                      <div className="relative w-11 h-11 bg-gradient-to-br from-red-500/15 to-orange-500/15 rounded-xl flex items-center justify-center border border-red-500/15">
                         <svg
-                          className="w-7 h-7 text-red-400"
+                          className="w-5 h-5 text-red-400"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -247,49 +241,49 @@ export default function AdminLayout({
                   </div>
 
                   {/* Text */}
-                  <div className="text-center mb-5">
-                    <h3 className="text-base font-bold text-white mb-1.5">
+                  <div className="text-center mb-4">
+                    <h3 className="text-sm font-bold text-white mb-1">
                       লগআউট করতে চান?
                     </h3>
-                    <p className="text-xs text-gray-500 leading-relaxed max-w-[240px] mx-auto">
-                      আপনি বর্তমান সেশন থেকে লগআউট হয়ে যাবেন। পুনরায় লগইন করতে হবে।
+                    <p className="text-[10px] text-gray-500 leading-relaxed">
+                      সেশন শেষ হবে। পুনরায় লগইন করতে হবে।
                     </p>
                   </div>
 
-                  {/* Admin Info Preview */}
-                  <div className="mb-5 p-3 bg-white/[0.02] border border-white/[0.05] rounded-xl flex items-center gap-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg flex items-center justify-center text-xs font-bold text-emerald-400 border border-emerald-500/15">
+                  {/* Admin Preview */}
+                  <div className="mb-4 p-2.5 bg-white/[0.02] border border-white/[0.05] rounded-xl flex items-center gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg flex items-center justify-center text-[9px] font-bold text-emerald-400 border border-emerald-500/15">
                       {admin?.name?.charAt(0)?.toUpperCase() || "A"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-white truncate">
+                      <p className="text-[10px] font-medium text-white truncate">
                         {admin?.name || "Administrator"}
                       </p>
-                      <p className="text-[10px] text-gray-500 truncate">
+                      <p className="text-[8px] text-gray-500 truncate">
                         {admin?.phoneNumber || "Admin Account"}
                       </p>
                     </div>
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
                   </div>
 
                   {/* Buttons */}
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setLogoutModal(false)}
                       disabled={loggingOut}
-                      className="flex-1 py-2.5 bg-white/[0.03] border border-white/[0.06] text-gray-400 rounded-xl text-xs font-medium hover:bg-white/[0.06] hover:text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97]"
+                      className="flex-1 py-2 bg-white/[0.03] border border-white/[0.06] text-gray-400 rounded-xl text-[11px] font-medium hover:bg-white/[0.06] hover:text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97]"
                     >
                       বাতিল
                     </button>
                     <button
                       onClick={performLogout}
                       disabled={loggingOut}
-                      className="flex-1 py-2.5 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl text-xs font-medium hover:shadow-lg hover:shadow-red-500/25 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.97]"
+                      className="flex-1 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl text-[11px] font-medium hover:shadow-lg hover:shadow-red-500/25 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 active:scale-[0.97]"
                     >
                       {loggingOut ? (
                         <>
                           <svg
-                            className="animate-spin w-3.5 h-3.5"
+                            className="animate-spin w-3 h-3"
                             viewBox="0 0 24 24"
                             fill="none"
                           >
@@ -307,12 +301,12 @@ export default function AdminLayout({
                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                             />
                           </svg>
-                          লগআউট হচ্ছে...
+                          <span className="text-[10px]">লগআউট হচ্ছে...</span>
                         </>
                       ) : (
                         <>
                           <svg
-                            className="w-3.5 h-3.5"
+                            className="w-3 h-3"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -336,7 +330,6 @@ export default function AdminLayout({
         )}
       </div>
 
-      {/* Animations */}
       <style jsx>{`
         @keyframes modalIn {
           from {

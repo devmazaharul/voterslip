@@ -15,9 +15,16 @@ export async function GET(req: NextRequest) {
     const sortOrder = url.searchParams.get("sortOrder") || "desc";
     const fromDate = url.searchParams.get("fromDate") || "";
     const toDate = url.searchParams.get("toDate") || "";
+    // ★ নতুন — village filter param
+    const village = url.searchParams.get("village") || "";
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filter: any = {};
+
+    // ★ Village exact match filter
+    if (village) {
+      filter.village = village;
+    }
 
     if (search) {
       const serialNum = parseInt(search);
@@ -113,10 +120,7 @@ export async function POST(req: NextRequest) {
     }
 
     // userId generate
-    const userId = generateUserId(
-      parseInt(serialNumber),
-      village
-    );
+    const userId = generateUserId(parseInt(serialNumber), village);
 
     // Duplicate check
     const exists = await Voter.findOne({ userId });

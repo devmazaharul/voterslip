@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAdminLayout } from "./components/contex";
-import { VILLAGES_NAME } from "../api/utils";
+import { VILLAGES_NAME_NEW } from "../api/newvoter/utils";
 
 // ─── Types ───
 interface Voter {
@@ -59,6 +59,12 @@ export default function AdminDashboard() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  // ╔══════════════════════════════════════════╗
+  // ║ ★ Village Filter — নতুন state যোগ করা ★ ║
+  // ╚══════════════════════════════════════════╝
+  const [filterVillage, setFilterVillage] = useState("");
+  const [villageFilterOpen, setVillageFilterOpen] = useState(false);
+
   const [modal, setModal] = useState<ModalType>(null);
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
   const [formData, setFormData] = useState({
@@ -75,10 +81,6 @@ export default function AdminDashboard() {
   const [formError, setFormError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [villageSelectOpen, setVillageSelectOpen] = useState(false);
-
-  // ╔══════════════════════════════════════╗
-  // ║ Refresh spinning state              ║
-  // ╚══════════════════════════════════════╝
   const [refreshing, setRefreshing] = useState(false);
 
   // ─── Fetch ───
@@ -104,6 +106,8 @@ export default function AdminDashboard() {
           sortOrder,
           ...(fromDate && { fromDate }),
           ...(toDate && { toDate }),
+          // ★ village filter param
+          ...(filterVillage && { village: filterVillage }),
         });
         const res = await fetch(`/api/admin/items?${params}`);
         const data = await res.json();
@@ -117,7 +121,8 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     },
-    [search, sortBy, sortOrder, fromDate, toDate]
+    // ★ filterVillage dependency যোগ
+    [search, sortBy, sortOrder, fromDate, toDate, filterVillage]
   );
 
   useEffect(() => {
@@ -131,9 +136,6 @@ export default function AdminDashboard() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // ╔══════════════════════════════════════════════╗
-  // ║ handleRefresh — refetch without page reload  ║
-  // ╚══════════════════════════════════════════════╝
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -141,9 +143,8 @@ export default function AdminDashboard() {
       setSuccessMsg("Data refreshed!");
       setTimeout(() => setSuccessMsg(""), 2500);
     } catch {
-      // silently fail — errors handled inside individual fetchers
+      /* handled inside fetchers */
     } finally {
-      // keep spinning for at least 600ms so user can see feedback
       setTimeout(() => setRefreshing(false), 600);
     }
   };
@@ -330,6 +331,7 @@ export default function AdminDashboard() {
     formData.village !== "" &&
     formData.pollingCenter.trim() !== "";
 
+  // ★ clearFilters — filterVillage ও reset
   const clearFilters = () => {
     setSearchInput("");
     setSearch("");
@@ -337,7 +339,17 @@ export default function AdminDashboard() {
     setToDate("");
     setSortBy("createdAt");
     setSortOrder("desc");
+    setFilterVillage("");
+    setVillageFilterOpen(false);
   };
+
+  // ★ hasActiveFilters — village ও check
+  const hasActiveFilters =
+    searchInput ||
+    fromDate ||
+    toDate ||
+    sortBy !== "createdAt" ||
+    filterVillage;
 
   const AddedByBadge = ({ addedBy }: { addedBy: "system" | "self" }) => (
     <span
@@ -397,9 +409,6 @@ export default function AdminDashboard() {
             Dashboard
           </h1>
           <div className="flex items-center gap-2">
-            {/* ╔══════════════════════════════════════════╗ */}
-            {/* ║ ★ REFRESH BUTTON — নতুন যোগ করা হয়েছে ★ ║ */}
-            {/* ╚══════════════════════════════════════════╝ */}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -421,7 +430,6 @@ export default function AdminDashboard() {
                   d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
                 />
               </svg>
-              {/* Pulse ring while refreshing */}
               {refreshing && (
                 <span className="absolute inset-0 rounded-xl border-2 border-purple-500/40 animate-ping pointer-events-none" />
               )}
@@ -556,8 +564,11 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Search & Filters */}
-        <div className="bg-white/[0.02] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
+        {/* ╔══════════════════════════════════════════════════════════╗ */}
+        {/* ║ Search & Filters — ★ Village Filter Dropdown যোগ করা ★ ║ */}
+        {/* ╚══════════════════════════════════════════════════════════╝ */}
+     <div className="relative z-10 bg-white/[0.02] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
+
           <div className="relative mb-3">
             <svg
               className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
@@ -603,7 +614,194 @@ export default function AdminDashboard() {
               </button>
             )}
           </div>
+
           <div className="flex flex-wrap gap-2 items-center">
+            {/* ╔═══════════════════════════════════════════════╗ */}
+            {/* ║ ★ VILLAGE FILTER DROPDOWN — নতুন যোগ করা ★   ║ */}
+            {/* ╚═══════════════════════════════════════════════╝ */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setVillageFilterOpen(!villageFilterOpen)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer border ${
+                  filterVillage
+                    ? "bg-blue-500/10 border-blue-500/25 text-blue-300"
+                    : "bg-white/[0.03] border-white/[0.06] text-gray-400 hover:text-white hover:border-white/[0.12]"
+                }`}
+              >
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                  />
+                </svg>
+                <span className="truncate max-w-[100px]">
+                  {filterVillage || "সব গ্রাম"}
+                </span>
+                {filterVillage ? (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilterVillage("");
+                      setVillageFilterOpen(false);
+                    }}
+                    className="p-0.5 hover:bg-white/10 rounded cursor-pointer"
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </span>
+                ) : (
+                  <svg
+                    className={`w-3 h-3 transition-transform ${villageFilterOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                    />
+                  </svg>
+                )}
+              </button>
+
+              {villageFilterOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[40]"
+                    onClick={() => setVillageFilterOpen(false)}
+                  />
+                  <div className="absolute z-[50] mt-1.5 left-0 w-56 animate-[dropIn_0.2s_ease]">
+                    <div className="bg-[#0d0d14] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden">
+                      <div className="px-3 py-2 border-b border-white/[0.06] flex items-center justify-between">
+                        <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                          গ্রাম ফিল্টার
+                        </p>
+                        <span className="text-[9px] text-gray-600 font-mono">
+                          {VILLAGES_NAME_NEW.length}টি
+                        </span>
+                      </div>
+
+                      {/* সব গ্রাম option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterVillage("");
+                          setVillageFilterOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer border-b border-white/[0.04] ${
+                          !filterVillage
+                            ? "bg-purple-500/10 text-purple-300"
+                            : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded-md flex items-center justify-center border ${
+                            !filterVillage
+                              ? "bg-purple-500/20 border-purple-500/40"
+                              : "border-white/[0.08]"
+                          }`}
+                        >
+                          {!filterVillage && (
+                            <svg
+                              className="w-2.5 h-2.5 text-purple-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2.5}
+                                d="M4.5 12.75l6 6 9-13.5"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium">
+                          সব গ্রাম দেখুন
+                        </span>
+                      </button>
+
+                      <div className="max-h-48 overflow-y-auto scrollbar-thin">
+                        {VILLAGES_NAME_NEW.map((village) => {
+                          const isSel = filterVillage === village;
+                          return (
+                            <button
+                              key={village}
+                              type="button"
+                              onClick={() => {
+                                setFilterVillage(
+                                  filterVillage === village ? "" : village
+                                );
+                                setVillageFilterOpen(false);
+                              }}
+                              className={`w-full z-50 flex items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer ${
+                                isSel
+                                  ? "bg-blue-500/10 text-blue-300"
+                                  : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+                              }`}
+                            >
+                              <div
+                                className={`w-4 h-4 rounded-md flex items-center justify-center border ${
+                                  isSel
+                                    ? "bg-blue-500/20 border-blue-500/40"
+                                    : "border-white/[0.08]"
+                                }`}
+                              >
+                                {isSel && (
+                                  <svg
+                                    className="w-2.5 h-2.5 text-blue-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2.5}
+                                      d="M4.5 12.75l6 6 9-13.5"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="text-xs">{village}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-gray-500 uppercase">From</span>
               <input
@@ -637,7 +835,8 @@ export default function AdminDashboard() {
               <option value="serialNumber-asc">Serial ↑</option>
               <option value="serialNumber-desc">Serial ↓</option>
             </select>
-            {(searchInput || fromDate || toDate || sortBy !== "createdAt") && (
+
+            {hasActiveFilters && (
               <button
                 onClick={clearFilters}
                 className="px-2.5 py-1.5 cursor-pointer text-[10px] text-red-400 bg-red-500/5 border border-red-500/20 rounded-lg hover:bg-red-500/10"
@@ -645,10 +844,60 @@ export default function AdminDashboard() {
                 Clear All
               </button>
             )}
+
             <span className="ml-auto text-[10px] text-gray-500">
               {pagination.total} results
             </span>
           </div>
+
+          {/* ★ Active Village Filter Badge — নিচে দেখায় কোন গ্রাম সিলেক্ট আছে */}
+          {filterVillage && (
+            <div className="mt-2.5 flex items-center gap-2">
+              <span className="text-[9px] text-gray-500 uppercase tracking-wider">
+                Filtering:
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 border border-blue-500/15 rounded-lg text-[11px] text-blue-300 font-medium">
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                  />
+                </svg>
+                {filterVillage}
+                <button
+                  onClick={() => setFilterVillage("")}
+                  className="p-0.5 hover:bg-white/10 rounded cursor-pointer ml-0.5"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ═══ TABLE ═══ */}
@@ -731,7 +980,19 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-3 py-2.5">
-                          <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/10">
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer transition-all ${
+                              filterVillage === v.village
+                                ? "text-blue-300 bg-blue-500/20 border-blue-500/30 ring-1 ring-blue-500/20"
+                                : "text-blue-400 bg-blue-500/10 border-blue-500/10 hover:bg-blue-500/15"
+                            }`}
+                            onClick={() =>
+                              setFilterVillage(
+                                filterVillage === v.village ? "" : v.village
+                              )
+                            }
+                            title={`Click to filter by ${v.village}`}
+                          >
                             {v.village || "—"}
                           </span>
                         </td>
@@ -864,7 +1125,19 @@ export default function AdminDashboard() {
                             <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
                               #{v.serialNumber}
                             </span>
-                            <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                            {/* ★ Mobile village badge — clickable filter */}
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-all ${
+                                filterVillage === v.village
+                                  ? "text-blue-300 bg-blue-500/20 border border-blue-500/30"
+                                  : "text-blue-400 bg-blue-500/10"
+                              }`}
+                              onClick={() =>
+                                setFilterVillage(
+                                  filterVillage === v.village ? "" : v.village
+                                )
+                              }
+                            >
                               {v.village || "—"}
                             </span>
                             <AddedByBadge addedBy={v.addedBy} />
@@ -1081,7 +1354,6 @@ export default function AdminDashboard() {
                           )}
                         </div>
                       </div>
-
                       <div>
                         <h3 className="text-lg font-bold text-white leading-tight">
                           {selectedVoter.name}
@@ -1094,7 +1366,6 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     </div>
-
                     <button
                       onClick={() => {
                         setModal(null);
@@ -1433,7 +1704,6 @@ export default function AdminDashboard() {
                   >
                     বন্ধ করুন
                   </button>
-
                   {isEditable(selectedVoter) && (
                     <>
                       <button
@@ -1753,11 +2023,11 @@ export default function AdminDashboard() {
                           <div className="bg-[#0d0d14] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden">
                             <div className="px-3 py-2 border-b border-white/[0.06]">
                               <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                                {VILLAGES_NAME.length} টি গ্রাম
+                                {VILLAGES_NAME_NEW.length} টি গ্রাম
                               </p>
                             </div>
                             <div className="max-h-40 overflow-y-auto scrollbar-thin">
-                              {VILLAGES_NAME.map((village) => {
+                              {VILLAGES_NAME_NEW.map((village) => {
                                 const isSel = formData.village === village;
                                 return (
                                   <button
