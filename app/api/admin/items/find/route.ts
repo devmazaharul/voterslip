@@ -1,22 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+import { VILLAGES_NAME } from "@/app/api/utils";
 import { connectDB } from "@/lib/db";
-import {  VILLAGES_NAME } from "../../utils";
-import VoterUser from "@/lib/model/voters";
-
-
+import Voter from "@/lib/model/voters";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const serialNumber = searchParams.get("serialNumber");
-    const villageName = searchParams.get("villageName");
+    const village = searchParams.get("village");
 
     // ─── Validation ───
-    if (!serialNumber || !villageName) {
+    if (!serialNumber || !village) {
       return NextResponse.json(
         {
           success: false,
           message: "ক্রমিক নম্বর এবং গ্রামের নাম দুটোই দরকার",
+          data: null,
         },
         { status: 400 }
       );
@@ -25,26 +24,34 @@ export async function GET(request: NextRequest) {
     const serial = parseInt(serialNumber);
     if (isNaN(serial) || serial <= 0) {
       return NextResponse.json(
-        { success: false, message: "সঠিক ক্রমিক নম্বর দিন" },
+        {
+          success: false,
+          message: "সঠিক ক্রমিক নম্বর দিন",
+          data: null,
+        },
         { status: 400 }
       );
     }
 
     // ─── Village Validation ───
-    if (!VILLAGES_NAME.includes(villageName as any)) {
+    if (!VILLAGES_NAME.includes(village)) {
       return NextResponse.json(
-        { success: false, message: "সঠিক গ্রামের নাম নির্বাচন করুন" },
+        {
+          success: false,
+          message: "সঠিক গ্রামের নাম নির্বাচন করুন",
+          data: null,
+        },
         { status: 400 }
       );
     }
 
-    // ─── Database Query (exact match) ───
+    // ─── Database Query ───
     await connectDB();
 
-    const voter = await VoterUser.findOne({
+    const voter = await Voter.findOne({
       serialNumber: serial,
-      villageName: villageName,
-    }).select("name dateOfBirth serialNumber villageName createdAt");
+      village: village,
+    }).lean();
 
     if (!voter) {
       return NextResponse.json(
@@ -61,16 +68,28 @@ export async function GET(request: NextRequest) {
       success: true,
       message: "ভোটার পাওয়া গেছে",
       data: {
+        _id: voter._id,
+        userId: voter.userId,
         name: voter.name,
         dateOfBirth: voter.dateOfBirth,
         serialNumber: voter.serialNumber,
-        villageName: voter.villageName,
+        voterNumber: voter.voterNumber,
+        village: voter.village,
+        motherName: voter.motherName,
+        fatherOrHusbandName: voter.fatherOrHusbandName,
+        pollingCenter: voter.pollingCenter,
+        addedBy: voter.addedBy,
+        createdAt: voter.createdAt,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Search error:", error);
     return NextResponse.json(
-      { success: false, message: "সার্ভারে সমস্যা হয়েছে" },
+      {
+        success: false,
+        message: "সার্ভারে সমস্যা হয়েছে",
+        data: null,
+      },
       { status: 500 }
     );
   }

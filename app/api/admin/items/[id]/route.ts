@@ -1,5 +1,6 @@
+import { generateUserId } from "@/app/api/newvoter/utils";
 import { connectDB } from "@/lib/db";
-import VoterUser from "@/lib/model/voters";
+import Voter from "@/lib/model/voters";
 import { NextRequest, NextResponse } from "next/server";
 
 // ─── PUT: Edit Voter ───
@@ -12,8 +13,7 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
 
-    // system দিয়ে যোগ হলে এডিট করা যাবে না
-    const voter = await VoterUser.findById(id);
+    const voter = await Voter.findById(id);
     if (!voter) {
       return NextResponse.json(
         { success: false, message: "Voter not found" },
@@ -21,6 +21,7 @@ export async function PUT(
       );
     }
 
+    // system → edit blocked
     if (voter.addedBy === "system") {
       return NextResponse.json(
         {
@@ -35,20 +36,30 @@ export async function PUT(
       name,
       dateOfBirth,
       serialNumber,
-      villageName,
-      mother,
-      husband_father,
+      voterNumber,
+      village,
+      motherName,
+      fatherOrHusbandName,
+      pollingCenter,
     } = body;
 
-    const updated = await VoterUser.findByIdAndUpdate(
+    // userId recalculate if serial or village changed
+    const newSerial = parseInt(serialNumber) || voter.serialNumber;
+    const newVillage = village || voter.village;
+    const newUserId = generateUserId(newSerial, newVillage);
+
+    const updated = await Voter.findByIdAndUpdate(
       id,
       {
+        userId: newUserId,
         name,
         dateOfBirth: new Date(dateOfBirth),
-        serialNumber,
-        villageName,
-        mother,
-        husband_father,
+        serialNumber: newSerial,
+        voterNumber,
+        village: newVillage,
+        motherName: motherName || "Unknown",
+        fatherOrHusbandName: fatherOrHusbandName || "Unknown",
+        pollingCenter,
       },
       { new: true }
     );
@@ -67,7 +78,8 @@ export async function PUT(
   }
 }
 
-// ─── DELETE: Delete Voter ───
+// ─── DELETE ───
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -76,7 +88,7 @@ export async function DELETE(
     await connectDB();
     const { id } = await params;
 
-    const voter = await VoterUser.findById(id);
+    const voter = await Voter.findById(id);
     if (!voter) {
       return NextResponse.json(
         { success: false, message: "Voter not found" },
@@ -88,14 +100,13 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message: "System দ্বারা যোগ করা ভোটার ডিলিট করা যাবে না",
+          message: "System ভোটার ডিলিট করা যাবে না",
         },
         { status: 403 }
       );
     }
 
-    await VoterUser.findByIdAndDelete(id);
-
+    await Voter.findByIdAndDelete(id);
     return NextResponse.json({
       success: true,
       message: "Voter deleted successfully",
@@ -108,3 +119,6 @@ export async function DELETE(
     );
   }
 }
+
+
+

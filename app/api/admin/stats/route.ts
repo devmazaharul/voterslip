@@ -1,36 +1,37 @@
-// app/api/voters/stats/route.ts
 import { connectDB } from "@/lib/db";
+import Voter from "@/lib/model/voters";
 import { NextResponse } from "next/server";
-import { getAdmin } from "../password-change/route";
-import VoterUser from "@/lib/model/voters";
 
 export async function GET() {
-   const admin = await getAdmin();
-    if (!admin) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-    }
-
   try {
     await connectDB();
 
-    const totalVoters = await VoterUser.countDocuments();
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const monthStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1
+    );
 
-    // Today added
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayAdded = await VoterUser.countDocuments({
-      createdAt: { $gte: today },
-    });
-
-    // This month added
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const thisMonthAdded = await VoterUser.countDocuments({
-      createdAt: { $gte: monthStart },
-    });
-
-    // Latest serial number
-    const latestVoter = await VoterUser.findOne().sort({ serialNumber: -1 });
-    const latestSerial = latestVoter?.serialNumber || 0;
+    const [totalVoters, todayAdded, thisMonthAdded, latestVoter] =
+      await Promise.all([
+        Voter.countDocuments(),
+        Voter.countDocuments({
+          createdAt: { $gte: todayStart },
+        }),
+        Voter.countDocuments({
+          createdAt: { $gte: monthStart },
+        }),
+        Voter.findOne()
+          .sort({ serialNumber: -1 })
+          .select("serialNumber")
+          .lean(),
+      ]);
 
     return NextResponse.json({
       success: true,
@@ -38,12 +39,13 @@ export async function GET() {
         totalVoters,
         todayAdded,
         thisMonthAdded,
-        latestSerial,
+        latestSerial: latestVoter?.serialNumber || 0,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error("Stats error:", error);
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, message: "Server error" },
       { status: 500 }
     );
   }

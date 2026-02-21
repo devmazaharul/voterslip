@@ -1,19 +1,28 @@
-// models/VoterUser.ts
-
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+// ইন্টারফেসে টাইপগুলো আরও স্পেসিফিক করা হয়েছে
 export interface IVoter extends Document {
+  userId: string; 
   name: string;
   dateOfBirth: Date;
   serialNumber: number;
-  villageName: string;
-  mother: string;
-  husband_father: string;
-  addedBy:string
+  voterNumber: string;        // voterNo এর বদলে voterNumber (serialNumber এর সাথে সামঞ্জস্যপূর্ণ)
+  village: string;            // villageName এর বদলে শুধু village 
+  motherName: string;         // mother এর বদলে motherName
+  fatherOrHusbandName: string;// husbandFather এর বদলে fatherOrHusbandName (স্ট্যান্ডার্ড ফরম্যাট)
+  pollingCenter: string;      // centerName এর বদলে pollingCenter (ভোটকেন্দ্রের সঠিক ইংরেজি)
+  addedBy: "system" | "self"; // Enum এর টাইপ সরাসরি এখানে ডিক্লেয়ার করা ভালো
+  createdAt?:Date
 }
 
 const VoterSchema: Schema<IVoter> = new Schema(
   {
+    userId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true, // এটি দিয়ে দ্রুত ইউজার খোঁজা যাবে
+    },
     name: {
       type: String,
       required: true,
@@ -27,33 +36,46 @@ const VoterSchema: Schema<IVoter> = new Schema(
       type: Number,
       required: true,
     },
-    villageName: {
+    voterNumber: {
       type: String,
       required: true,
     },
-    mother: {
+    village: {
       type: String,
-      default:"unknown"
+      required: true,
+      trim: true,
     },
-    husband_father: {
+    motherName: {
       type: String,
-       default:"unknown"
+      default: "Unknown",
+      trim: true,
+    },
+    fatherOrHusbandName: {
+      type: String,
+      default: "Unknown",
+      trim: true,
+    },
+    pollingCenter: {
+      type: String,
+      required: true,
+      trim: true,
     },
     addedBy: {
-    type: String,
-    enum: ["system", "self"], 
-    default:"system"
-  }
+      type: String,
+      enum: ["system", "self"],
+      default: "system",
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// ডুপ্লিকেট চেক দ্রুত করতে compound index
-VoterSchema.index({ serialNumber: 1, villageName: 1 }, { unique: true });
+// ডুপ্লিকেট চেক দ্রুত করতে Compound Index
+VoterSchema.index({ serialNumber: 1, village: 1 }, { unique: true });
 
-const VoterUser: Model<IVoter> =
-  mongoose.models.VoterUser || mongoose.model<IVoter>("VoterUser", VoterSchema);
+// মডেলের নাম VoterUser থেকে শুধু Voter করা হলো
+const Voter: Model<IVoter> =
+  mongoose.models.Voter || mongoose.model<IVoter>("Voter", VoterSchema);
 
-export default VoterUser;
+export default Voter;

@@ -1,12 +1,12 @@
-import { connectDB } from "@/lib/db";
-import VoterUser from "@/lib/model/voters";
 import { NextRequest, NextResponse } from "next/server";
+import { generateUserId } from "../../newvoter/utils";
+import Voter from "@/lib/model/voters";
+import { connectDB } from "@/lib/db";
 
 // ─── GET: List Voters ───
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
-
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "1");
     const limit = parseInt(url.searchParams.get("limit") || "10");
@@ -23,9 +23,12 @@ export async function GET(req: NextRequest) {
       const serialNum = parseInt(search);
       filter.$or = [
         { name: { $regex: search, $options: "i" } },
-        { mother: { $regex: search, $options: "i" } },
-        { husband_father: { $regex: search, $options: "i" } },
-        { villageName: { $regex: search, $options: "i" } },
+        { motherName: { $regex: search, $options: "i" } },
+        { fatherOrHusbandName: { $regex: search, $options: "i" } },
+        { village: { $regex: search, $options: "i" } },
+        { voterNumber: { $regex: search, $options: "i" } },
+        { pollingCenter: { $regex: search, $options: "i" } },
+        { userId: { $regex: search, $options: "i" } },
         ...(isNaN(serialNum) ? [] : [{ serialNumber: serialNum }]),
       ];
     }
@@ -40,15 +43,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const total = await VoterUser.countDocuments(filter);
+    const total = await Voter.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
     const skip = (page - 1) * limit;
-
     const sortObj: Record<string, 1 | -1> = {
       [sortBy]: sortOrder === "asc" ? 1 : -1,
     };
 
-    const data = await VoterUser.find(filter)
+    const data = await Voter.find(filter)
       .sort(sortObj)
       .skip(skip)
       .limit(limit)
@@ -80,50 +82,65 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json();
-
     const {
       name,
       dateOfBirth,
       serialNumber,
-      villageName,
-      mother,
-      husband_father,
+      voterNumber,
+      village,
+      motherName,
+      fatherOrHusbandName,
+      pollingCenter,
     } = body;
 
+    // Validation
     if (
       !name ||
       !dateOfBirth ||
       !serialNumber ||
-      !villageName ||
-      !mother ||
-      !husband_father
+      !voterNumber ||
+      !village ||
+      !pollingCenter
     ) {
-      return NextResponse.json(
-        { success: false, message: "সব ফিল্ড পূরণ করতে হবে" },
-        { status: 400 }
-      );
-    }
-
-    // ডুপ্লিকেট চেক
-    const exists = await VoterUser.findOne({ serialNumber, villageName });
-    if (exists) {
       return NextResponse.json(
         {
           success: false,
-          message: `Serial #${serialNumber} ইতিমধ্যে ${villageName} তে আছে`,
+          message:
+            "name, dateOfBirth, serialNumber, voterNumber, village, pollingCenter — সব দিতে হবে",
         },
         { status: 400 }
       );
     }
 
-    const voter = await VoterUser.create({
+    // userId generate
+    const userId = generateUserId(
+      parseInt(serialNumber),
+      village
+    );
+
+    // Duplicate check
+    const exists = await Voter.findOne({ userId });
+    if (exists) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Serial #${serialNumber} ইতিমধ্যে "${village}" তে আছে`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const voter = await Voter.create({
+      userId,
       name,
       dateOfBirth: new Date(dateOfBirth),
-      serialNumber,
-      villageName,
-      mother,
-      husband_father,
-      addedBy: "self", // ← ম্যানুয়ালি যোগ করা = self
+      serialNumber: parseInt(serialNumber),
+      voterNumber,
+      village,
+      motherName: motherName || "Unknown",
+      fatherOrHusbandName: fatherOrHusbandName || "Unknown",
+      pollingCenter,
+      addedBy: "self",
     });
 
     return NextResponse.json({

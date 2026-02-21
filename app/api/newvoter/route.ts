@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { banglaDOBToDate, banglaSerialToNumber, banglaToEnglishDigits } from "./utils";
 import { connectDB } from "@/lib/db";
-import VoterUser from "@/lib/model/voters";
+import { NextRequest, NextResponse } from "next/server";
+import { banglaDOBToDate, banglaSerialToNumber, banglaToEnglishDigits, generateUserId } from "./utils";
+import Voter from "@/lib/model/voters";
 
-// ─── External API থেকে আসা টাইপ ───
+// ─── External API Types ───
 interface ExternalVoter {
   Id: number;
   Serial: string;
@@ -34,48 +34,24 @@ interface ExternalAPIResponse {
   Message: string;
 }
 
-// ─── Frontend এ পাঠানোর টাইপ ───
-interface MappedVoter {
-  id: number;
-  voterAreaName: string;
-  voterName: string;
-  voterMother: string;
-  voterFather: string;
-  gender: string;
-  dob: string;
-  address: string;
-  serialNo: string;
-  nid: string;
-  centerName: string | null;
-}
-
-// ─── Request Body টাইপ ───
 interface RequestBody {
-  DOB: string;            // "০১/০১/২০০১"
-  Ward: string;         
+  DOB: string;
+  Ward: string;
   Identification?: string;
 }
 
 const EXTERNAL_URL =
   "https://vapi.aesysit.com/api/Data/GetVoterInfoListByNameDOBWard";
 
-const DEFAULT_IDENTIFICATION =
+const DEFAULT_ID =
   process.env.VOTER_API_IDENTIFICATION ||
   "kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==";
-
-// ─── Helper: Bangla DOB → ISO string ───
-function banglaDOBToISO(banglaDOB: string): string {
-  const eng = banglaToEnglishDigits(banglaDOB); // "01/01/2001"
-  const [dd, mm, yyyy] = eng.split("/");
-  return `${yyyy}-${mm}-${dd}`; // "2001-01-01"
-}
 
 // ════════════════════════════════════════
 // POST /api/voters
 // ════════════════════════════════════════
 export async function POST(req: NextRequest) {
   try {
-    // ── ১. Body পার্স ──
     const body: RequestBody = await req.json();
     const { DOB, Ward, Identification } = body;
 
@@ -86,21 +62,55 @@ export async function POST(req: NextRequest) {
           success: false,
           message: "DOB এবং Ward দিতে হবে",
           data: [],
-          timestamp: new Date().toISOString(),
+          source: null,
         },
         { status: 400 }
       );
     }
 
-    // ── ২. External API কল ──
+    await connectDB();
+
+    // ╔═══════════════════════════════════════════════╗
+    // ║ STEP 1: আগে Database এ খোঁজো               ║
+    // ║ dateOfBirth + village দিয়ে চেক করো            ║
+    // ╚═══════════════════════════════════════════════╝
+    const searchDate = banglaDOBToDate(DOB);
+
+    // Date range — same day match
+    const dayStart = new Date(searchDate);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(searchDate);
+    dayEnd.setUTCHours(23, 59, 59, 999);
+
+    const dbResults = await Voter.find({
+      village: Ward,
+      dateOfBirth: { $gte: dayStart, $lte: dayEnd },
+    }).lean();
+
+    // ╔═══════════════════════════════════════════╗
+    // ║ DB তে পাওয়া গেলে → সরাসরি return করো    ║
+    // ╚═══════════════════════════════════════════╝
+    if (dbResults.length > 0) {
+      return NextResponse.json({
+        statusCode: 200,
+        success: true,
+        message: `ডাটাবেস থেকে ${dbResults.length} জন ভোটার পাওয়া গেছে`,
+        data: dbResults,
+        source: "database",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ╔═══════════════════════════════════════════════╗
+    // ║ STEP 2: DB তে নেই → External API কল করো     ║
+    // ╚═══════════════════════════════════════════════╝
     const externalRes = await fetch(EXTERNAL_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         DOB,
         Ward,
-        Identification: Identification || DEFAULT_IDENTIFICATION,
-        isArea:Ward=="নরেন্দ্রপুর"?false:true
+        Identification: Identification || DEFAULT_ID,
       }),
     });
 
@@ -111,7 +121,7 @@ export async function POST(req: NextRequest) {
           success: false,
           message: `External API error: ${externalRes.status}`,
           data: [],
-          timestamp: new Date().toISOString(),
+          source: "api_error",
         },
         { status: 502 }
       );
@@ -119,7 +129,6 @@ export async function POST(req: NextRequest) {
 
     const externalData: ExternalAPIResponse = await externalRes.json();
 
-    // ── ৩. সাকসেস চেক ──
     if (!externalData.IsSuccess) {
       return NextResponse.json(
         {
@@ -127,7 +136,7 @@ export async function POST(req: NextRequest) {
           success: false,
           message: externalData.Message || "External API ব্যর্থ",
           data: [],
-          timestamp: new Date().toISOString(),
+          source: "api_error",
         },
         { status: 400 }
       );
@@ -141,59 +150,64 @@ export async function POST(req: NextRequest) {
         success: true,
         message: "কোনো ভোটার পাওয়া যায়নি",
         data: [],
+        source: "api",
         timestamp: new Date().toISOString(),
       });
     }
 
-    // ── ৪. MongoDB কানেক্ট + ডুপ্লিকেট চেক করে সেভ ──
-    await connectDB();
+    // ╔══════════════════════════════════════════════════╗
+    // ║ STEP 3: External data → DB তে save করো         ║
+    // ║ serialNumber + village দিয়ে ডুপ্লিকেট চেক      ║
+    // ║ userId = hash(serialNumber + village)            ║
+    // ╚══════════════════════════════════════════════════╝
+    const savedVoters = [];
 
-    let insertedCount = 0;
-    let skippedCount = 0;
+    for (const v of voters) {
+      const serialNumber = banglaSerialToNumber(v.Serial);
+      const village = v.AreaName;
+      const usId = generateUserId(serialNumber, village);
 
-    for (const voter of voters) {
-      const serialNumber = banglaSerialToNumber(voter.Serial);
-      const villageName = voter.AreaName;
+      // ডুপ্লিকেট skip
+      const exists = await Voter.findOne({ userId: usId });
+      if (exists) {
+        savedVoters.push(exists);
+        continue;
+      }
 
-      const exists = await VoterUser.findOne({ serialNumber, villageName });
-
-      if (!exists) {
-        await VoterUser.create({
-          name: voter.Name,
-          dateOfBirth: banglaDOBToDate(voter.DOB_Bangla),
+      try {
+        const newVoter = await Voter.create({
+          userId: usId,
+          name: v.Name,
+          dateOfBirth: banglaDOBToDate(v.DOB_Bangla),
           serialNumber,
-          villageName,
-          mother: voter.Mother,
-          husband_father: voter.Husband_Father,
-          addedBy: "system"
+          voterNumber: banglaToEnglishDigits(v.Voter_No),
+          village,
+          motherName: v.Mother || "Unknown",
+          fatherOrHusbandName: v.Husband_Father || "Unknown",
+          pollingCenter: v.CenterName || "Unknown",
+          addedBy: "system",
         });
-        insertedCount++;
-      } else {
-        skippedCount++;
+        savedVoters.push(newVoter);
+      } catch (err) {
+        // ডুপ্লিকেট key error হলে skip
+        console.warn("Duplicate skip:", err);
+        const existing = await Voter.findOne({
+          serialNumber,
+          village,
+        });
+        if (existing) savedVoters.push(existing);
       }
     }
 
-    // ── ৫. Frontend ফরম্যাটে ম্যাপ ──
-    const mappedVoters: MappedVoter[] = voters.map((v) => ({
-      id: v.Id,
-      voterAreaName: v.AreaName,
-      voterName: v.Name,
-      voterMother: v.Mother,
-      voterFather: v.Husband_Father,
-      gender: v.Gender || "",
-      dob: banglaDOBToISO(v.DOB_Bangla),
-      address: v.Address || "",
-      serialNo: banglaToEnglishDigits(v.Serial),
-      nid: banglaToEnglishDigits(v.Voter_No),
-      centerName: v.CenterName || null,
-    }));
-
-    // ── ৬. রেসপন্স ──
+    // ╔════════════════════════════════════╗
+    // ║ STEP 4: Response return করো       ║
+    // ╚════════════════════════════════════╝
     return NextResponse.json({
       statusCode: 200,
       success: true,
-      message: `${voters.length} জন ভোটার পাওয়া গেছে (নতুন: ${insertedCount}, আগে ছিল: ${skippedCount})`,
-      data: mappedVoters,
+      message: `${savedVoters.length} জন ভোটার পাওয়া গেছে (API থেকে)`,
+      data: savedVoters,
+      source: "api",
       timestamp: new Date().toISOString(),
     });
   } catch (error: unknown) {
@@ -204,11 +218,9 @@ export async function POST(req: NextRequest) {
         success: false,
         message: "সার্ভার এরর হয়েছে",
         data: [],
-        timestamp: new Date().toISOString(),
+        source: null,
       },
       { status: 500 }
     );
   }
 }
-
-
