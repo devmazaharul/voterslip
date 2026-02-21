@@ -13,6 +13,7 @@ import {
   Sparkles, Shield, Heart, Fingerprint, Building2, Clock,
   BadgeCheck, ChevronDown, Globe, CheckCircle2, X,
   ArrowRight, Copy, Check, Database, Wifi,
+  List,
 } from 'lucide-react';
 import { VillageOption, VILLAGES_NAME_NEW, VILLAGES_NEW } from '../api/newvoter/utils';
 
@@ -68,13 +69,35 @@ const formatDateInput = (raw: string): string => {
 const convertToBanglaDOB = (dob: string): string =>
   toBanglaDigits(dob);
 
-const formatDisplayDate = (iso: string): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const dd = String(d.getUTCDate()).padStart(2, '0');
-  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const yyyy = d.getUTCFullYear();
-  return `${dd}/${mm}/${yyyy}`;
+const BANGLA_MONTHS = [
+  'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল',
+  'মে', 'জুন', 'জুলাই', 'আগস্ট',
+  'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর',
+];
+
+const formatDisplayDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+
+  let day: number, month: number, year: number;
+
+  // "01/01/2000" format (DD/MM/YYYY)
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    day = parseInt(parts[0]);
+    month = parseInt(parts[1]);
+    year = parseInt(parts[2]);
+  }
+  // ISO format "2000-01-01T00:00:00.000Z"
+  else {
+    const d = new Date(dateStr);
+    day = d.getUTCDate();
+    month = d.getUTCMonth() + 1;
+    year = d.getUTCFullYear();
+  }
+
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return dateStr;
+
+  return `${toBanglaDigits(day.toString())} ${BANGLA_MONTHS[month - 1]} ${toBanglaDigits(year.toString())}`;
 };
 
 // ── COPY HOOK ──
@@ -359,9 +382,7 @@ const VoterCard: React.FC<{
               {voter.name}
             </h3>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-[10px] font-mono font-bold text-gray-500">
-                সিরিয়াল #{toBanglaDigits(voter.serialNumber.toString())}
-              </span>
+            
               <div className="w-px h-3.5 bg-white/[0.06]" />
               <span
                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
@@ -388,7 +409,7 @@ const VoterCard: React.FC<{
               </div>
               <div>
                 <p className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">
-                  ভোটার নম্বর (NID)
+                  ভোটার নম্বর 
                 </p>
                 <p className="text-base font-mono font-black text-white tracking-[0.1em] mt-0.5">
                   {toBanglaDigits(voter.voterNumber)}
@@ -417,6 +438,23 @@ const VoterCard: React.FC<{
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {[
             {
+              label: 'সিরিয়াল',
+              value: toBanglaDigits(voter.serialNumber.toString()),
+              icon: <List className="w-3 h-3" />,
+              color: 'text-sky-400',
+              bg: 'bg-sky-500/10',
+              border: 'border-sky-500/10',
+            },
+             {
+              label: 'জন্ম তারিখ',
+              value: formatDisplayDate(voter.dateOfBirth),
+              icon: <Clock className="w-3 h-3" />,
+              color: 'text-amber-400',
+              bg: 'bg-amber-500/10',
+              border: 'border-amber-500/10',
+              mono: true,
+            },
+            {
               label: 'পিতা/স্বামী',
               value: voter.fatherOrHusbandName,
               icon: <User className="w-3 h-3" />,
@@ -432,23 +470,8 @@ const VoterCard: React.FC<{
               bg: 'bg-rose-500/10',
               border: 'border-rose-500/10',
             },
-            {
-              label: 'জন্ম তারিখ',
-              value: formatDisplayDate(voter.dateOfBirth),
-              icon: <Clock className="w-3 h-3" />,
-              color: 'text-amber-400',
-              bg: 'bg-amber-500/10',
-              border: 'border-amber-500/10',
-              mono: true,
-            },
-            {
-              label: 'এলাকা',
-              value: voter.village,
-              icon: <MapPin className="w-3 h-3" />,
-              color: 'text-emerald-400',
-              bg: 'bg-emerald-500/10',
-              border: 'border-emerald-500/10',
-            },
+           
+        
           ].map((item) => (
             <div
               key={item.label}

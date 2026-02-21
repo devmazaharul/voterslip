@@ -1,9 +1,15 @@
+// app/api/newvoter/route.ts
 import { connectDB } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { banglaDOBToDate, banglaSerialToNumber, banglaToEnglishDigits, generateUserId } from "./utils";
+import {
+  banglaDOBToDate,
+  banglaSerialToNumber,
+  banglaToEnglishDigits,
+  generateUserId,
+} from "./utils";
 import Voter from "@/lib/model/voters";
 
-// ─── External API Types ───
+// ─── Types ───
 interface ExternalVoter {
   Id: number;
   Serial: string;
@@ -47,8 +53,14 @@ const DEFAULT_ID =
   process.env.VOTER_API_IDENTIFICATION ||
   "kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==";
 
+// ─── Bangla DOB → English formatted date ───
+// "০১/০১/২০০০" → "01/01/2000"
+const banglaDateToEnglish = (banglaDob: string): string => {
+  return banglaToEnglishDigits(banglaDob);
+};
+
 // ════════════════════════════════════════
-// POST /api/voters
+// POST /api/newvoter
 // ════════════════════════════════════════
 export async function POST(req: NextRequest) {
   try {
@@ -68,42 +80,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await connectDB();
-
-    // ╔═══════════════════════════════════════════════╗
-    // ║ STEP 1: আগে Database এ খোঁজো               ║
-    // ║ dateOfBirth + village দিয়ে চেক করো            ║
-    // ╚═══════════════════════════════════════════════╝
-    const searchDate = banglaDOBToDate(DOB);
-
-    // Date range — same day match
-    const dayStart = new Date(searchDate);
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayEnd = new Date(searchDate);
-    dayEnd.setUTCHours(23, 59, 59, 999);
-
-    const dbResults = await Voter.find({
-      village: Ward,
-      dateOfBirth: { $gte: dayStart, $lte: dayEnd },
-    }).lean();
-
-    // ╔═══════════════════════════════════════════╗
-    // ║ DB তে পাওয়া গেলে → সরাসরি return করো    ║
-    // ╚═══════════════════════════════════════════╝
-    if (dbResults.length > 0) {
-      return NextResponse.json({
-        statusCode: 200,
-        success: true,
-        message: `ডাটাবেস থেকে ${dbResults.length} জন ভোটার পাওয়া গেছে`,
-        data: dbResults,
-        source: "database",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // ╔═══════════════════════════════════════════════╗
-    // ║ STEP 2: DB তে নেই → External API কল করো     ║
-    // ╚═══════════════════════════════════════════════╝
+    // ╔══════════════════════════════════════════╗
+    // ║ STEP 1: External API কল                  ║
+    // ╚══════════════════════════════════════════╝
     const externalRes = await fetch(EXTERNAL_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -111,7 +90,7 @@ export async function POST(req: NextRequest) {
         DOB,
         Ward,
         Identification: Identification || DEFAULT_ID,
-        isArea:Ward=="নরেন্দ্রপুর"?false:true
+        isArea: Ward === "নরেন্দ্রপুর" ? false : true,
       }),
     });
 
@@ -156,28 +135,31 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ╔══════════════════════════════════════════════════╗
-    // ║ STEP 3: External data → DB তে save করো         ║
-    // ║ serialNumber + village দিয়ে ডুপ্লিকেট চেক      ║
-    // ║ userId = hash(serialNumber + village)            ║
-    // ╚══════════════════════════════════════════════════╝
-    const savedVoters = [];
+    // ╔══════════════════════════════════════════╗
+    // ║ STEP 2: সব English এ convert করো         ║
+    // ╚══════════════════════════════════════════╝
+    const responseData = voters.map((v) => ({
+      name: v.Name,
+      dateOfBirth: banglaDateToEnglish(v.DOB_Bangla),
+      serialNumber: banglaSerialToNumber(v.Serial),
+      voterNumber: banglaToEnglishDigits(v.Voter_No),
+      village: v.AreaName,
+      motherName: v.Mother || "Unknown",
+      fatherOrHusbandName: v.Husband_Father || "Unknown",
+      pollingCenter: v.CenterName || "Unknown",
+    }));
 
-    for (const v of voters) {
-      const serialNumber = banglaSerialToNumber(v.Serial);
-      const village = v.AreaName;
-      const usId = generateUserId(serialNumber, village);
+    // ╔══════════════════════════════════════════╗
+    // ║ STEP 3: DB তে save (নতুন হলে insert)     ║
+    // ╚══════════════════════════════════════════╝
+    try {
+      await connectDB();
 
-      // ডুপ্লিকেট skip
-      const exists = await Voter.findOne({ userId: usId });
-      if (exists) {
-        savedVoters.push(exists);
-        continue;
-      }
-
-      try {
-        const newVoter = await Voter.create({
-          userId: usId,
+      const voterDocs = voters.map((v) => {
+        const serialNumber = banglaSerialToNumber(v.Serial);
+        const village = v.AreaName;
+        return {
+          userId: generateUserId(serialNumber, village),
           name: v.Name,
           dateOfBirth: banglaDOBToDate(v.DOB_Bangla),
           serialNumber,
@@ -186,28 +168,38 @@ export async function POST(req: NextRequest) {
           motherName: v.Mother || "Unknown",
           fatherOrHusbandName: v.Husband_Father || "Unknown",
           pollingCenter: v.CenterName || "Unknown",
-          addedBy: "system",
-        });
-        savedVoters.push(newVoter);
-      } catch (err) {
-        // ডুপ্লিকেট key error হলে skip
-        console.warn("Duplicate skip:", err);
-        const existing = await Voter.findOne({
-          serialNumber,
-          village,
-        });
-        if (existing) savedVoters.push(existing);
+          addedBy: "system" as const,
+        };
+      });
+
+      const allUserIds = voterDocs.map((d) => d.userId);
+      const existing = await Voter.find(
+        { userId: { $in: allUserIds } },
+        { userId: 1 }
+      ).lean();
+      const existingIds = new Set(existing.map((e) => e.userId));
+
+      const newVoters = voterDocs.filter((d) => !existingIds.has(d.userId));
+
+      if (newVoters.length > 0) {
+        await Voter.insertMany(newVoters, { ordered: false });
       }
+
+      console.log(
+        `✅ API: ${voters.length} | New: ${newVoters.length} | Skipped: ${existingIds.size}`
+      );
+    } catch (dbErr) {
+      console.warn("⚠️ DB save error:", dbErr);
     }
 
-    // ╔════════════════════════════════════╗
-    // ║ STEP 4: Response return করো       ║
-    // ╚════════════════════════════════════╝
+    // ╔══════════════════════════════════════════╗
+    // ║ STEP 4: English data return               ║
+    // ╚══════════════════════════════════════════╝
     return NextResponse.json({
       statusCode: 200,
       success: true,
-      message: `${savedVoters.length} জন ভোটার পাওয়া গেছে (API থেকে)`,
-      data: savedVoters,
+      message: `${responseData.length} জন ভোটার পাওয়া গেছে`,
+      data: responseData,
       source: "api",
       timestamp: new Date().toISOString(),
     });
