@@ -1,5 +1,7 @@
-import { VILLAGES_NAME } from "@/app/api/utils";
+// app/api/search/route.ts
 import { connectDB } from "@/lib/db";
+import { generateUserId, VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
+import { VILLAGES_NAME } from "@/app/api/utils";
 import Voter from "@/lib/model/voters";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ─── Village Validation ───
-    if (!VILLAGES_NAME.includes(village)) {
+    if (!VILLAGES_NAME_NEW.includes(village)) {
       return NextResponse.json(
         {
           success: false,
@@ -45,13 +47,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // ─── Generate userId (same hash as save time) ───
+    const userId = generateUserId(serial, village);
+ 
+
     // ─── Database Query ───
     await connectDB();
 
-    const voter = await Voter.findOne({
-      serialNumber: serial,
-      village: village,
-    }).lean();
+    const voter = await Voter.findOne({ userId }).lean();
 
     if (!voter) {
       return NextResponse.json(
