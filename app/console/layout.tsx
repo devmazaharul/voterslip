@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { AppleIcon, Search, SettingsIcon } from "lucide-react";
+import { AppleIcon, Search, SettingsIcon, TestTubeIcon } from "lucide-react";
 import { AdminLayoutContext } from "./components/contex";
 
 export default function AdminLayout({
@@ -69,6 +69,11 @@ export default function AdminLayout({
       label: "Find",
       href: "/console/find",
       icon: <Search size={14} />,
+    },
+    {
+      label: "Test",
+      href: "/console/test",
+      icon: <TestTubeIcon size={14} />,
     },
     {
       label: "Control",
