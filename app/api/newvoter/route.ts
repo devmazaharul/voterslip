@@ -27,6 +27,7 @@ interface ExternalVoter {
   Is_Father: boolean | null;
   Is_Migrated: boolean | null;
   Pdf_Information_Id: number;
+  addedBy:string
 }
 
 interface ExternalAPIResponse {
@@ -147,6 +148,7 @@ export async function POST(req: NextRequest) {
       motherName: v.Mother || "Unknown",
       fatherOrHusbandName: v.Husband_Father || "Unknown",
       pollingCenter: v.CenterName || "Unknown",
+      addedBy:"system"
     }));
 
     // ╔══════════════════════════════════════════╗
@@ -185,9 +187,9 @@ export async function POST(req: NextRequest) {
         await Voter.insertMany(newVoters, { ordered: false });
       }
 
-      console.log(
-        `✅ API: ${voters.length} | New: ${newVoters.length} | Skipped: ${existingIds.size}`
-      );
+      // console.log(
+      //   `✅ API: ${voters.length} | New: ${newVoters.length} | Skipped: ${existingIds.size}`
+      // );
     } catch (dbErr) {
       console.warn("⚠️ DB save error:", dbErr);
     }

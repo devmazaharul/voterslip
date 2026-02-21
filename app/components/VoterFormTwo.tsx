@@ -684,10 +684,7 @@ const VoterFormTwo: React.FC = () => {
                         <MapPin className="w-3.5 h-3.5 text-purple-400/60" />
                         ১৪ নং ইউনিয়ন — নরেন্দ্রপুর
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400/80 text-[9px] font-bold border border-emerald-500/10">
-                        <Shield className="w-3 h-3" />
-                        DB-First ক্যাশিং সক্রিয়
-                      </span>
+                     
                     </div>
                   </div>
                 </div>
@@ -1016,7 +1013,7 @@ const VoterFormTwo: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="relative mt-12 py-6 border-t border-white/[0.08]">
+          {/* <div className="relative mt-12 py-6 border-t border-white/[0.08]">
             <div className="relative flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-xs">
               <Sparkles className="w-4 h-4 text-indigo-400" />
               <span>
@@ -1038,7 +1035,8 @@ const VoterFormTwo: React.FC = () => {
                 </a>
               </div>
             </div>
-          </div>
+          </div> */}
+       
         </div>
       </div>
 
