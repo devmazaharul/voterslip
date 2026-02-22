@@ -165,7 +165,7 @@ const CustomSelect: React.FC<{
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-[#0f0f14] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-[drop_0.15s_ease]">
+          <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-gray-900 border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-[drop_0.15s_ease]">
             <div className="max-h-52 overflow-y-auto py-1 px-1 scrl">
               {options.map((opt, i) => {
                 const sel = opt.id === value;

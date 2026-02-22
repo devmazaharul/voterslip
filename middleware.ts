@@ -5,7 +5,7 @@ import { TOKEN_NAME, verifyToken } from "./app/api/utils";
 
 // Kon kon route protect korte hobe
 const protectedRoutes = ["/console"];
-const authRoutes = ["/access"];
+const authRoutes = ["/access",'/record'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,7 +18,6 @@ export async function middleware(request: NextRequest) {
     isAuthenticated = !!payload;
   }
 
-  // PROTECTED ROUTES: /admin/**
   // Jodi login na thake tahole /access e pathao
   const isProtectedRoute = protectedRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
