@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         { motherName: { $regex: search, $options: "i" } },
         { fatherOrHusbandName: { $regex: search, $options: "i" } },
         { village: { $regex: search, $options: "i" } },
-        { serialNumber: { $regex: search, $options: "i" } },
+        { voterNumber: { $regex: search, $options: "i" } },
         { pollingCenter: { $regex: search, $options: "i" } },
         { userId: { $regex: search, $options: "i" } },
         ...(isNaN(serialNum) ? [] : [{ serialNumber: serialNum }]),
