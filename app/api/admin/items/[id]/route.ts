@@ -1,6 +1,7 @@
-import { generateUserId } from "@/app/api/newvoter/utils";
+
 import { connectDB } from "@/lib/db";
-import Voter from "@/lib/model/voters";
+import VoterData from "@/lib/model/votersData";
+
 import { NextRequest, NextResponse } from "next/server";
 
 // ─── PUT: Edit Voter ───
@@ -13,7 +14,7 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
 
-    const voter = await Voter.findById(id);
+    const voter = await VoterData.findById(id);
     if (!voter) {
       return NextResponse.json(
         { success: false, message: "Voter not found" },
@@ -46,12 +47,10 @@ export async function PUT(
     // userId recalculate if serial or village changed
     const newSerial = parseInt(serialNumber) || voter.serialNumber;
     const newVillage = village || voter.village;
-    const newUserId = generateUserId(newSerial, newVillage);
 
-    const updated = await Voter.findByIdAndUpdate(
+    const updated = await VoterData.findByIdAndUpdate(
       id,
       {
-        userId: newUserId,
         name,
         dateOfBirth: new Date(dateOfBirth),
         serialNumber: newSerial,
@@ -88,7 +87,7 @@ export async function DELETE(
     await connectDB();
     const { id } = await params;
 
-    const voter = await Voter.findById(id);
+    const voter = await VoterData.findById(id);
     if (!voter) {
       return NextResponse.json(
         { success: false, message: "Voter not found" },
@@ -106,7 +105,7 @@ export async function DELETE(
       );
     }
 
-    await Voter.findByIdAndDelete(id);
+    await VoterData.findByIdAndDelete(id);
     return NextResponse.json({
       success: true,
       message: "Voter deleted successfully",
