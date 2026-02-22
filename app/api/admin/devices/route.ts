@@ -3,21 +3,8 @@ import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { connectDB } from "@/lib/db";
 import AdminUser from "@/lib/model/adminUser";
+import { getAdmin } from "../../auth/verify/route";
 import { TOKEN_NAME } from "../../utils";
-
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
-
-async function getAdmin() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(TOKEN_NAME)?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, SECRET);
-    return payload;
-  } catch {
-    return null;
-  }
-}
 
 // ─── GET Devices ───
 export async function GET() {

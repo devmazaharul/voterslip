@@ -2,6 +2,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TOKEN_NAME, verifyToken } from "../../utils";
 import AdminUser from "@/lib/model/adminUser";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
+import { connectDB } from "@/lib/db";
+
+const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+
+export async function getAdmin() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(TOKEN_NAME)?.value;
+  if (!token) return null;
+
+  try {
+    const { payload } = await jwtVerify(token, SECRET);
+    await connectDB();
+    const user = await AdminUser.findOne({
+      _id: payload.id,
+      "deviceLogs.sessionToken": token,  
+    });
+
+    if (!user) return null;  
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 
 
 export async function GET(request: NextRequest) {
@@ -53,3 +80,7 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+
+
+

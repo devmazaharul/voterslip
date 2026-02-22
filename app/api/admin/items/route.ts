@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
-import { getAdmin } from "../password-change/route";
+import { getAdmin } from "../../auth/verify/route";
 
 
 // ─── GET: List Voters ───

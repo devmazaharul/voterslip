@@ -1,9 +1,8 @@
-
+import { getAdmin } from "@/app/api/auth/verify/route";
 import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAdmin } from "../../password-change/route";
 
 // ─── PUT: Edit Voter ───
 export async function PUT(

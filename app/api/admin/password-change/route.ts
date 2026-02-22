@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-import { cookies } from "next/headers";
 import bcrypt from "bcrypt";
 import { connectDB } from "@/lib/db";
 import AdminUser from "@/lib/model/adminUser";
-import { TOKEN_NAME } from "../../utils";
+import { getAdmin } from "../../auth/verify/route";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-export async function getAdmin() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(TOKEN_NAME)?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, SECRET);
-    return payload;
-  } catch {
-    return null;
-  }
-}
 
 export async function PUT(req: NextRequest) {
   const admin = await getAdmin();

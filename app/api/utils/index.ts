@@ -25,3 +25,5 @@ export async function verifyToken(token: string): Promise<any> {
 
 export const TOKEN_NAME="admin-token"
 export const MAX_ADMINS_ALLOW=5
+
+

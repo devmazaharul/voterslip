@@ -1,8 +1,9 @@
+import { getAdmin } from "@/app/api/auth/verify/route";
 import { VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
+
 import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
 import { NextRequest, NextResponse } from "next/server";
-import { getAdmin } from "../../password-change/route";
 
 export async function GET(request: NextRequest) {
     const admin = await getAdmin();
