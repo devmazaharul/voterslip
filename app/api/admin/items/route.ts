@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
+import { getAdmin } from "../password-change/route";
 
 
 // ─── GET: List Voters ───
 export async function GET(req: NextRequest) {
+    const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectDB();
 
@@ -98,6 +103,10 @@ export async function GET(req: NextRequest) {
 
 // ─── POST: Add Voter (addedBy = "self") ───
 export async function POST(req: NextRequest) {
+    const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectDB();
 

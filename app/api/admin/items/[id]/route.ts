@@ -3,12 +3,17 @@ import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
 
 import { NextRequest, NextResponse } from "next/server";
+import { getAdmin } from "../../password-change/route";
 
 // ─── PUT: Edit Voter ───
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+    const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectDB();
     const { id } = await params;
@@ -83,6 +88,10 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+    const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectDB();
     const { id } = await params;

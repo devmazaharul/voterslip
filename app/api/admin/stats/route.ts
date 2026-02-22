@@ -2,8 +2,13 @@ import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
 
 import { NextResponse } from "next/server";
+import { getAdmin } from "../password-change/route";
 
 export async function GET() {
+    const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectDB();
 

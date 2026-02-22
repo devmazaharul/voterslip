@@ -2,8 +2,13 @@ import { VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
 import { connectDB } from "@/lib/db";
 import VoterData from "@/lib/model/votersData";
 import { NextRequest, NextResponse } from "next/server";
+import { getAdmin } from "../../password-change/route";
 
 export async function GET(request: NextRequest) {
+    const admin = await getAdmin();
+    if (!admin) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
   try {
     const { searchParams } = new URL(request.url);
     const serialNumber = searchParams.get("serialNumber");
