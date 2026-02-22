@@ -41,12 +41,12 @@ export async function GET(req: NextRequest) {
     }
 
     if (fromDate || toDate) {
-      filter.createdAt = {};
-      if (fromDate) filter.createdAt.$gte = new Date(fromDate);
+      filter.dateOfBirth = {};
+      if (fromDate) filter.dateOfBirth.$gte = new Date(fromDate);
       if (toDate) {
         const to = new Date(toDate);
         to.setHours(23, 59, 59, 999);
-        filter.createdAt.$lte = to;
+        filter.dateOfBirth.$lte = to;
       }
     }
 

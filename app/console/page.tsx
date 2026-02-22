@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAdminLayout } from "./components/contex";
 import { VILLAGES_NAME_NEW } from "../api/newvoter/utils";
 
@@ -39,6 +39,425 @@ interface Stats {
 
 type ModalType = "add" | "edit" | "delete" | "details" | null;
 
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ ★ Custom DateInput Component — সুন্দর Calendar Picker ★  ║
+// ╚═══════════════════════════════════════════════════════════╝
+interface DateInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  full?: boolean;
+}
+
+const MONTH_NAMES_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const DAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function DateInput({
+  value,
+  onChange,
+  placeholder = "Select",
+  full = false,
+}: DateInputProps) {
+  const [open, setOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
+  const [viewYear, setViewYear] = useState(new Date().getFullYear());
+  const [showYearGrid, setShowYearGrid] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const yearGridRef = useRef<HTMLDivElement>(null);
+
+  // Click outside → close
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+        setShowYearGrid(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Escape key → close
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        setShowYearGrid(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  // Sync view to selected date when opening
+  useEffect(() => {
+    if (open) {
+      if (value) {
+        const d = new Date(value + "T00:00:00");
+        setViewMonth(d.getMonth());
+        setViewYear(d.getFullYear());
+      } else {
+        setViewMonth(new Date().getMonth());
+        setViewYear(new Date().getFullYear());
+      }
+      setShowYearGrid(false);
+    }
+  }, [open]);
+
+  // Scroll to active year when year grid opens
+  useEffect(() => {
+    if (showYearGrid && yearGridRef.current) {
+      const el = yearGridRef.current.querySelector("[data-active='true']");
+      if (el) el.scrollIntoView({ block: "center", behavior: "instant" });
+    }
+  }, [showYearGrid]);
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay();
+  const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const prevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
+
+  const selectDay = (day: number) => {
+    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    onChange(dateStr);
+    setOpen(false);
+    setShowYearGrid(false);
+  };
+
+  const selectToday = () => {
+    onChange(todayStr);
+    setOpen(false);
+    setShowYearGrid(false);
+  };
+
+  const clear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange("");
+    setOpen(false);
+    setShowYearGrid(false);
+  };
+
+  const formatDisplay = (v: string) => {
+    const d = new Date(v + "T00:00:00");
+    return `${d.getDate()} ${MONTH_NAMES_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+  };
+
+  // Build calendar cells
+  const cells: { day: number; type: "prev" | "curr" | "next" }[] = [];
+  for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+    cells.push({ day: prevMonthDays - i, type: "prev" });
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    cells.push({ day: i, type: "curr" });
+  }
+  const remaining = 42 - cells.length;
+  for (let i = 1; i <= remaining; i++) {
+    cells.push({ day: i, type: "next" });
+  }
+  // Trim last row if all "next"
+  const lastRowStart = Math.floor((cells.length - 1) / 7) * 7;
+  const showCells =
+    cells[lastRowStart]?.type === "next"
+      ? cells.slice(0, lastRowStart)
+      : cells;
+
+  // Year range for picker
+  const years = Array.from({ length: 101 }, (_, i) => 1950 + i);
+
+  return (
+    <div className={`relative ${full ? "w-full" : ""}`} ref={containerRef}>
+      {/* ─ Trigger Button ─ */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`
+          group flex items-center gap-2 cursor-pointer transition-all duration-200
+          ${
+            full
+              ? "w-full px-3.5 py-2.5 rounded-xl text-sm"
+              : "px-2.5 py-1.5 rounded-lg text-xs"
+          }
+          bg-white/[0.03] border
+          ${
+            open
+              ? "border-purple-500/30 ring-2 ring-purple-500/15 bg-white/[0.06]"
+              : "border-white/[0.06] hover:border-white/[0.15] hover:bg-white/[0.05]"
+          }
+        `}
+      >
+        <svg
+          className={`${full ? "w-4 h-4" : "w-3.5 h-3.5"} flex-shrink-0 transition-colors duration-200 ${
+            open
+              ? "text-purple-400"
+              : "text-gray-500 group-hover:text-purple-400"
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.8}
+            d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+          />
+        </svg>
+        <span
+          className={`flex-1 text-left truncate ${value ? "text-white" : "text-gray-500"}`}
+        >
+          {value ? formatDisplay(value) : placeholder}
+        </span>
+        {value && (
+          <span
+            onClick={clear}
+            className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded transition-all cursor-pointer"
+          >
+            <svg
+              className="w-3 h-3 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </span>
+        )}
+      </button>
+
+      {/* ─ Calendar Dropdown ─ */}
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-[998]"
+            onClick={() => {
+              setOpen(false);
+              setShowYearGrid(false);
+            }}
+          />
+          <div className="absolute z-[999] mt-1.5 left-0 w-[272px] animate-[calendarIn_0.18s_ease]">
+            <div className="bg-[#111118]/[0.98] backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+              {/* Header — Month/Year Nav */}
+              <div className="flex items-center justify-between px-3 py-2.5">
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  className="p-1.5 rounded-lg hover:bg-white/[0.08] text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.75 19.5L8.25 12l7.5-7.5"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowYearGrid(!showYearGrid)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+                >
+                  <span className="text-xs font-semibold text-white">
+                    {MONTH_NAMES_SHORT[viewMonth]}
+                  </span>
+                  <span className="text-xs font-semibold text-purple-400">
+                    {viewYear}
+                  </span>
+                  <svg
+                    className={`w-3 h-3 text-gray-500 transition-transform ${showYearGrid ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  className="p-1.5 rounded-lg hover:bg-white/[0.08] text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Year Grid (overlay) */}
+              {showYearGrid && (
+                <div
+                  ref={yearGridRef}
+                  className="absolute inset-x-3 top-12 bottom-12 bg-[#111118] rounded-xl border border-white/[0.06] overflow-y-auto z-10 grid grid-cols-4 gap-1 p-2 content-start scrollbar-thin"
+                  style={{ maxHeight: "200px" }}
+                >
+                  {years.map((yr) => (
+                    <button
+                      key={yr}
+                      type="button"
+                      data-active={yr === viewYear}
+                      onClick={() => {
+                        setViewYear(yr);
+                        setShowYearGrid(false);
+                      }}
+                      className={`py-1.5 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                        yr === viewYear
+                          ? "bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30"
+                          : yr === today.getFullYear()
+                            ? "text-purple-400/60 hover:bg-white/[0.06] hover:text-white"
+                            : "text-gray-500 hover:bg-white/[0.06] hover:text-white"
+                      }`}
+                    >
+                      {yr}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 px-2.5">
+                {DAY_HEADERS.map((d) => (
+                  <div
+                    key={d}
+                    className="text-center text-[9px] font-semibold text-gray-500/70 py-1"
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Days Grid */}
+              <div className="grid grid-cols-7 gap-[3px] px-2.5 pb-2">
+                {showCells.map(({ day, type }, i) => {
+                  if (type !== "curr") {
+                    return (
+                      <div
+                        key={`${type}-${i}`}
+                        className="flex items-center justify-center w-full aspect-square rounded-lg text-[10px] text-gray-700/30 select-none"
+                      >
+                        {day}
+                      </div>
+                    );
+                  }
+                  const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                  const isToday = dateStr === todayStr;
+                  const isSelected = dateStr === value;
+                  return (
+                    <button
+                      key={`curr-${day}`}
+                      type="button"
+                      onClick={() => selectDay(day)}
+                      className={`
+                        flex items-center justify-center w-full aspect-square
+                        rounded-lg text-[10px] font-semibold transition-all duration-150 cursor-pointer
+                        ${
+                          isSelected
+                            ? "bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg shadow-purple-500/30 scale-105"
+                            : isToday
+                              ? "bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/25 hover:bg-purple-500/20"
+                              : "text-gray-300 hover:bg-white/[0.08] hover:text-white active:scale-90"
+                        }
+                      `}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Footer — Today & Clear */}
+              <div className="flex items-center justify-between px-3 py-2 border-t border-white/[0.06]">
+                <button
+                  type="button"
+                  onClick={selectToday}
+                  className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 px-2.5 py-1 rounded-md hover:bg-purple-500/10 transition-colors cursor-pointer"
+                >
+                  Today
+                </button>
+                {value && (
+                  <button
+                    type="button"
+                    onClick={clear}
+                    className="text-[10px] font-medium text-gray-500 hover:text-gray-300 px-2.5 py-1 rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ Main Dashboard Component ═══
+// ═══════════════════════════════════════════════════
+
 export default function AdminDashboard() {
   const { setSidebarOpen, handleLogout } = useAdminLayout();
 
@@ -59,9 +478,6 @@ export default function AdminDashboard() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  // ╔══════════════════════════════════════════╗
-  // ║ ★ Village Filter — নতুন state যোগ করা ★ ║
-  // ╚══════════════════════════════════════════╝
   const [filterVillage, setFilterVillage] = useState("");
   const [villageFilterOpen, setVillageFilterOpen] = useState(false);
 
@@ -106,7 +522,6 @@ export default function AdminDashboard() {
           sortOrder,
           ...(fromDate && { fromDate }),
           ...(toDate && { toDate }),
-          // ★ village filter param
           ...(filterVillage && { village: filterVillage }),
         });
         const res = await fetch(`/api/admin/items?${params}`);
@@ -121,7 +536,6 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     },
-    // ★ filterVillage dependency যোগ
     [search, sortBy, sortOrder, fromDate, toDate, filterVillage]
   );
 
@@ -331,7 +745,6 @@ export default function AdminDashboard() {
     formData.village !== "" &&
     formData.pollingCenter.trim() !== "";
 
-  // ★ clearFilters — filterVillage ও reset
   const clearFilters = () => {
     setSearchInput("");
     setSearch("");
@@ -343,7 +756,6 @@ export default function AdminDashboard() {
     setVillageFilterOpen(false);
   };
 
-  // ★ hasActiveFilters — village ও check
   const hasActiveFilters =
     searchInput ||
     fromDate ||
@@ -564,11 +976,8 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* ╔══════════════════════════════════════════════════════════╗ */}
-        {/* ║ Search & Filters — ★ Village Filter Dropdown যোগ করা ★ ║ */}
-        {/* ╚══════════════════════════════════════════════════════════╝ */}
-     <div className="relative z-10 bg-white/[0.02] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
-
+        {/* ═══ Search & Filters ═══ */}
+        <div className="relative z-10 bg-white/[0.02] backdrop-blur border border-white/[0.06] rounded-2xl p-4">
           <div className="relative mb-3">
             <svg
               className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
@@ -616,9 +1025,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
-            {/* ╔═══════════════════════════════════════════════╗ */}
-            {/* ║ ★ VILLAGE FILTER DROPDOWN — নতুন যোগ করা ★   ║ */}
-            {/* ╚═══════════════════════════════════════════════╝ */}
+            {/* Village Filter Dropdown */}
             <div className="relative">
               <button
                 type="button"
@@ -708,7 +1115,6 @@ export default function AdminDashboard() {
                         </span>
                       </div>
 
-                      {/* সব গ্রাম option */}
                       <button
                         type="button"
                         onClick={() => {
@@ -802,24 +1208,30 @@ export default function AdminDashboard() {
               )}
             </div>
 
+            {/* ╔══════════════════════════════════════════════════╗ */}
+            {/* ║ ★ Custom DateInput — From & To (REPLACED) ★     ║ */}
+            {/* ╚══════════════════════════════════════════════════╝ */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-500 uppercase">From</span>
-              <input
-                type="date"
+              <span className="text-[10px] text-gray-500 uppercase font-medium">
+                From
+              </span>
+              <DateInput
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="px-2.5 py-1.5 bg-white/[0.03] border border-white/[0.06] rounded-lg text-xs text-white focus:outline-none [color-scheme:dark]"
+                onChange={setFromDate}
+                placeholder="Start date"
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-500 uppercase">To</span>
-              <input
-                type="date"
+              <span className="text-[10px] text-gray-500 uppercase font-medium">
+                To
+              </span>
+              <DateInput
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="px-2.5 py-1.5 bg-white/[0.03] border border-white/[0.06] rounded-lg text-xs text-white focus:outline-none [color-scheme:dark]"
+                onChange={setToDate}
+                placeholder="End date"
               />
             </div>
+
             <select
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
@@ -850,7 +1262,6 @@ export default function AdminDashboard() {
             </span>
           </div>
 
-          {/* ★ Active Village Filter Badge — নিচে দেখায় কোন গ্রাম সিলেক্ট আছে */}
           {filterVillage && (
             <div className="mt-2.5 flex items-center gap-2">
               <span className="text-[9px] text-gray-500 uppercase tracking-wider">
@@ -1125,7 +1536,6 @@ export default function AdminDashboard() {
                             <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
                               #{v.serialNumber}
                             </span>
-                            {/* ★ Mobile village badge — clickable filter */}
                             <span
                               className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-all ${
                                 filterVillage === v.village
@@ -1888,20 +2298,20 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  {/* ╔════════════════════════════════════════════════════╗ */}
+                  {/* ║ ★ Form DOB — Custom DateInput (REPLACED) ★        ║ */}
+                  {/* ╚════════════════════════════════════════════════════╝ */}
                   <div>
                     <label className="block text-[10px] font-medium text-gray-400 mb-1.5 ml-1 uppercase tracking-wider">
                       জন্ম তারিখ *
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={formData.dateOfBirth}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          dateOfBirth: e.target.value,
-                        })
+                      onChange={(v) =>
+                        setFormData({ ...formData, dateOfBirth: v })
                       }
-                      className="w-full px-3.5 py-2.5 bg-white/[0.03] border border-white/[0.06] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 [color-scheme:dark]"
+                      placeholder="জন্ম তারিখ"
+                      full
                     />
                   </div>
                   <div>
@@ -2257,6 +2667,16 @@ export default function AdminDashboard() {
           from {
             opacity: 0;
             transform: translateY(-8px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes calendarIn {
+          from {
+            opacity: 0;
+            transform: translateY(-6px) scale(0.96);
           }
           to {
             opacity: 1;
