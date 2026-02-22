@@ -4,15 +4,15 @@ import { useAdminLayout } from "../components/contex";
 import { VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
 
 // ╔══════════════════════════════════════════╗
-// ║ নতুন Model অনুযায়ী VoterResult টাইপ     ║
+// ║ নতুন Model অনুযায়ী — userId বাদ         ║
+// ║ voterNumber = number                    ║
 // ╚══════════════════════════════════════════╝
 interface VoterResult {
   _id: string;
-  userId: string;
   name: string;
   dateOfBirth: string;
   serialNumber: number;
-  voterNumber: string;
+  voterNumber: number;
   village: string;
   motherName: string;
   fatherOrHusbandName: string;
@@ -27,12 +27,13 @@ export default function SearchPage() {
   const [serialNumber, setSerialNumber] = useState("");
   const [village, setVillage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<VoterResult | null>(null);
+  const [results, setResults] = useState<VoterResult[]>([]);
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [villageSearch, setVillageSearch] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   const filteredVillages = VILLAGES_NAME_NEW.filter((v) =>
     v.includes(villageSearch)
@@ -49,7 +50,7 @@ export default function SearchPage() {
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError("");
-    setResult(null);
+    setResults([]);
 
     if (!serialNumber.trim()) {
       setError("ক্রমিক নম্বর লিখুন");
@@ -75,10 +76,14 @@ export default function SearchPage() {
       });
       const res = await fetch(`/api/admin/items/find?${params}`);
       const data = await res.json();
-      if (data.success) {
-        setResult(data.data);
+
+      if (data.success && data.data) {
+        // ✅ array হিসেবে সেট করো
+        const arr = Array.isArray(data.data) ? data.data : [data.data];
+        setResults(arr);
+        if (arr.length === 1) setExpandedCard(arr[0]._id);
       } else {
-        setError(data.message);
+        setError(data.message || "কোনো ভোটার পাওয়া যায়নি");
       }
     } catch {
       setError("সার্ভারে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
@@ -90,10 +95,11 @@ export default function SearchPage() {
   const handleClear = () => {
     setSerialNumber("");
     setVillage("");
-    setResult(null);
+    setResults([]);
     setError("");
     setSearched(false);
     setVillageSearch("");
+    setExpandedCard(null);
   };
 
   // ─── Helpers ───
@@ -364,293 +370,273 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {/* ══════════════════════════════════════════════════ */}
-              {/* ═══ RESULT CARD — সব নতুন ফিল্ড সহ ═══           */}
-              {/* ══════════════════════════════════════════════════ */}
-              {result && (
-                <div className="animate-[resultReveal_0.6s_ease]">
-                  <div className="relative">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600/20 via-teal-600/15 to-cyan-600/20 rounded-3xl blur-2xl animate-[pulse_3s_ease-in-out_infinite]" />
-                    <div className="absolute -inset-0.5 bg-gradient-to-b from-emerald-500/10 to-transparent rounded-[22px] blur-md" />
-
-                    <div className="relative bg-[#0c0c14]/90 backdrop-blur-2xl border border-emerald-500/15 rounded-2xl overflow-hidden">
-                      {/* Result Header */}
-                      <div className="relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.08] via-teal-500/[0.04] to-transparent" />
-                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `radial-gradient(circle, rgba(16,185,129,0.3) 1px, transparent 1px)`, backgroundSize: "20px 20px" }} />
-                        <div className="relative px-5 py-5 flex items-center gap-3.5">
-                          <div className="relative">
-                            <div className="absolute -inset-1 bg-emerald-500/20 rounded-2xl blur-lg animate-[pulse_2s_ease-in-out_infinite]" />
-                            <div className="relative w-11 h-11 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl flex items-center justify-center border border-emerald-500/20">
-                              <svg className="w-6 h-6 text-emerald-400 animate-[checkPop_0.5s_ease_0.3s_both]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.746 3.746 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-emerald-300">ভোটার পাওয়া গেছে</h3>
-                            <p className="text-[10px] text-emerald-400/40 mt-0.5">তথ্য সফলভাবে খুঁজে পাওয়া গেছে</p>
-                          </div>
-                          {/* Source Badge */}
-                          <div className="ml-auto">
-                            <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${
-                              result.addedBy === "system"
-                                ? "text-amber-400 bg-amber-500/10 border border-amber-500/15"
-                                : "text-emerald-400 bg-emerald-500/10 border border-emerald-500/15"
-                            }`}>
-                              {result.addedBy === "system" ? "🔒 System" : "✏️ Self"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+              {/* ═══════════════════════════════════════════ */}
+              {/* ═══ RESULTS — Multiple Voter Cards ═══     */}
+              {/* ═══════════════════════════════════════════ */}
+              {results.length > 0 && (
+                <div className="space-y-4 animate-[resultReveal_0.6s_ease]">
+                  {/* ─── Result Summary Badge ─── */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/15">
+                        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                       </div>
-
-                      {/* Voter Info */}
-                      <div className="p-5 sm:p-6">
-                        {/* ═══ Avatar + Name ═══ */}
-                        <div className="flex items-start gap-4 mb-5">
-                          <div className="relative">
-                            <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-2xl blur-lg" />
-                            <div className="relative w-[68px] h-[68px] bg-gradient-to-br from-purple-500 via-violet-500 to-blue-500 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shadow-xl shadow-purple-500/20">
-                              {result.name.charAt(0)}
-                            </div>
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-[#0c0c14]">
-                              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4.5 12.75l6 6 9-13.5" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h2 className="text-xl font-bold text-white leading-tight">{result.name}</h2>
-                            <div className="flex flex-wrap items-center gap-2 mt-2.5">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-mono text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/15">
-                                #{toBangla(result.serialNumber)}
-                              </span>
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/15">
-                                📍 {result.village}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ═══ Voter Number / NID — কপি সহ ═══ */}
-                        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500/[0.08] to-cyan-500/[0.08] border border-purple-500/10 p-4 mb-4">
-                          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full" />
-                          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`, backgroundSize: "16px 16px" }} />
-                          <div className="relative flex items-center justify-between pl-3">
-                            <div>
-                              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">ভোটার নম্বর / NID</p>
-                              <p className="text-lg font-mono font-black text-white tracking-[0.15em] mt-1">
-                                {result.voterNumber ? toBangla(result.voterNumber) : "—"}
-                              </p>
-                            </div>
-                            {result.voterNumber && (
-                              <button
-                                onClick={() => copyToClipboard(result.voterNumber, "nid")}
-                                className="p-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer active:scale-90"
-                                title="কপি করুন"
-                              >
-                                {copiedField === "nid" ? (
-                                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-4 h-4 text-gray-500 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-                                  </svg>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* ═══ Info Grid — 2x3 ═══ */}
-                        <div className="grid grid-cols-2 gap-3">
-                          {/* পিতা/স্বামী */}
-                          <div className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 hover:border-sky-500/20 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-sky-500/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                            <div className="relative">
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <div className="w-5 h-5 bg-sky-500/10 rounded-md flex items-center justify-center">
-                                  <svg className="w-2.5 h-2.5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                  </svg>
-                                </div>
-                                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">পিতা/স্বামী</span>
-                              </div>
-                              <p className="text-sm font-semibold text-white leading-snug">
-                                {result.fatherOrHusbandName || "তথ্য নেই"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* মাতা */}
-                          <div className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 hover:border-rose-500/20 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                            <div className="relative">
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <div className="w-5 h-5 bg-rose-500/10 rounded-md flex items-center justify-center">
-                                  <svg className="w-2.5 h-2.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                                  </svg>
-                                </div>
-                                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">মাতা</span>
-                              </div>
-                              <p className="text-sm font-semibold text-white leading-snug">
-                                {result.motherName || "তথ্য নেই"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* জন্ম তারিখ */}
-                          <div className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 hover:border-blue-500/20 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                            <div className="relative">
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <div className="w-5 h-5 bg-blue-500/10 rounded-md flex items-center justify-center">
-                                  <svg className="w-2.5 h-2.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                                  </svg>
-                                </div>
-                                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">জন্ম তারিখ</span>
-                              </div>
-                              <p className="text-sm font-semibold text-white">{formatDate(result.dateOfBirth)}</p>
-                            </div>
-                          </div>
-
-                          {/* বয়স */}
-                          <div className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 hover:border-amber-500/20 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                            <div className="relative">
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <div className="w-5 h-5 bg-amber-500/10 rounded-md flex items-center justify-center">
-                                  <svg className="w-2.5 h-2.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                </div>
-                                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">বয়স</span>
-                              </div>
-                              <p className="text-xl font-bold text-white">
-                                {toBangla(calcAge(result.dateOfBirth))} <span className="text-xs font-normal text-gray-500">বছর</span>
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* ক্রমিক নম্বর */}
-                          <div className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 hover:border-purple-500/20 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                            <div className="relative">
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <div className="w-5 h-5 bg-purple-500/10 rounded-md flex items-center justify-center">
-                                  <svg className="w-2.5 h-2.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5" />
-                                  </svg>
-                                </div>
-                                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">ক্রমিক নম্বর</span>
-                              </div>
-                              <p className="text-xl font-bold text-white font-mono tracking-wide">{toBangla(result.serialNumber)}</p>
-                            </div>
-                          </div>
-
-                          {/* গ্রাম */}
-                          <div className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 hover:border-emerald-500/20 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                            <div className="relative">
-                              <div className="flex items-center gap-1.5 mb-2">
-                                <div className="w-5 h-5 bg-emerald-500/10 rounded-md flex items-center justify-center">
-                                  <svg className="w-2.5 h-2.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                  </svg>
-                                </div>
-                                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">গ্রাম</span>
-                              </div>
-                              <p className="text-sm font-semibold text-white">{result.village}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ═══ Polling Center ═══ */}
-                        {result.pollingCenter && (
-                          <div className="mt-3 relative overflow-hidden bg-gradient-to-r from-emerald-500/[0.06] to-teal-500/[0.04] border border-emerald-500/10 rounded-xl p-4">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full" />
-                            <div className="pl-3 flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0">
-                                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-                                </svg>
-                              </div>
-                              <div>
-                                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">ভোটকেন্দ্র</p>
-                                <p className="text-sm font-bold text-emerald-400 mt-1 leading-snug">{result.pollingCenter}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ═══ Full Name Bar ═══ */}
-                        <div className="mt-3 relative overflow-hidden bg-gradient-to-r from-purple-500/[0.04] to-blue-500/[0.04] border border-white/[0.06] rounded-xl p-4">
-                          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-blue-500 rounded-full" />
-                          <div className="pl-3">
-                            <div className="flex items-center gap-1.5 mb-1.5">
-                              <svg className="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                              </svg>
-                              <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">পুরো নাম</span>
-                            </div>
-                            <p className="text-base font-bold text-white">{result.name}</p>
-                          </div>
-                        </div>
-
-                        {/* ═══ User ID (collapsible meta) ═══ */}
-                        <div className="mt-3 bg-white/[0.02] border border-white/[0.04] rounded-xl divide-y divide-white/[0.04]">
-                          <div className="flex items-center justify-between px-4 py-2.5">
-                            <span className="text-[10px] text-gray-500 font-medium">User ID</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono text-gray-400 max-w-[160px] truncate">{result.userId}</span>
-                              <button onClick={() => copyToClipboard(result.userId, "uid")} className="p-1 rounded hover:bg-white/[0.05] cursor-pointer transition-colors">
-                                {copiedField === "uid" ? (
-                                  <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-                                  </svg>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between px-4 py-2.5">
-                            <span className="text-[10px] text-gray-500 font-medium">Source</span>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
-                              result.addedBy === "system"
-                                ? "text-amber-400 bg-amber-500/10 border border-amber-500/15"
-                                : "text-emerald-400 bg-emerald-500/10 border border-emerald-500/15"
-                            }`}>
-                              {result.addedBy === "system" ? "🔒 System" : "✏️ Self"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Search Again */}
-                        <button
-                          onClick={handleClear}
-                          className="w-full mt-4 py-2.5 bg-white/[0.03] border border-white/[0.06] text-gray-400 rounded-xl text-xs font-medium hover:bg-white/[0.06] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                          </svg>
-                          নতুন অনুসন্ধান করুন
-                        </button>
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-300">
+                          {toBangla(results.length)} জন ভোটার পাওয়া গেছে
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          ক্রমিক #{toBangla(serialNumber)} — {village}
+                        </p>
                       </div>
                     </div>
+                    {results.length > 1 && (
+                      <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/15">
+                        {toBangla(results.length)} টি ফলাফল
+                      </span>
+                    )}
                   </div>
+
+                  {/* ─── Voter Cards Loop ─── */}
+                  {results.map((result, index) => {
+                    const isExpanded = expandedCard === result._id;
+                    const cardColors = [
+                      { from: "emerald", accent: "emerald" },
+                      { from: "blue", accent: "blue" },
+                      { from: "violet", accent: "violet" },
+                    ];
+                    const color = cardColors[index % cardColors.length];
+
+                    return (
+                      <div key={result._id} className="relative">
+                        <div className={`absolute -inset-0.5 bg-gradient-to-r from-${color.from}-600/15 to-cyan-600/15 rounded-[22px] blur-xl opacity-50`} />
+
+                        <div className={`relative bg-[#0c0c14]/90 backdrop-blur-2xl border rounded-2xl overflow-hidden transition-all duration-300 ${
+                          isExpanded ? `border-${color.accent}-500/20` : "border-white/[0.06] hover:border-white/[0.12]"
+                        }`}>
+
+                          {/* ─── Card Header (ক্লিকেবল) ─── */}
+                          <button
+                            onClick={() => setExpandedCard(isExpanded ? null : result._id)}
+                            className="w-full text-left cursor-pointer"
+                          >
+                            <div className="relative overflow-hidden">
+                              <div className={`absolute inset-0 bg-gradient-to-br from-${color.accent}-500/[0.06] to-transparent`} />
+                              <div className="relative px-5 py-4 flex items-center gap-3.5">
+                                {/* Avatar */}
+                                <div className="relative shrink-0">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 via-violet-500 to-blue-500 rounded-xl flex items-center justify-center text-lg font-bold text-white shadow-lg shadow-purple-500/20">
+                                    {result.name.charAt(0)}
+                                  </div>
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-[#0c0c14]">
+                                    <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4.5 12.75l6 6 9-13.5" />
+                                    </svg>
+                                  </div>
+                                </div>
+
+                                {/* Name + Quick Info */}
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="text-base font-bold text-white truncate">{result.name}</h3>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-md">
+                                      #{toBangla(result.serialNumber)}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">
+                                      বয়স: {toBangla(calcAge(result.dateOfBirth))}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Badge + Arrow */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                                    result.addedBy === "system"
+                                      ? "text-amber-400 bg-amber-500/10 border border-amber-500/15"
+                                      : "text-emerald-400 bg-emerald-500/10 border border-emerald-500/15"
+                                  }`}>
+                                    {result.addedBy === "system" ? "SYS" : "SELF"}
+                                  </span>
+                                  <svg className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+
+                          {/* ─── Expanded Details ─── */}
+                          {isExpanded && (
+                            <div className="animate-[slideDown_0.3s_ease]">
+                              <div className="h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+
+                              <div className="p-5 sm:p-6 space-y-4">
+                                {/* ═══ Voter Number / NID ═══ */}
+                                <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500/[0.08] to-cyan-500/[0.08] border border-purple-500/10 p-4">
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full" />
+                                  <div className="relative flex items-center justify-between pl-3">
+                                    <div>
+                                      <p className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">ভোটার নম্বর / NID</p>
+                                      <p className="text-lg font-mono font-black text-white tracking-[0.15em] mt-1">
+                                        {toBangla(result.voterNumber)}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={() => copyToClipboard(String(result.voterNumber), `nid-${result._id}`)}
+                                      className="p-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer active:scale-90"
+                                      title="কপি করুন"
+                                    >
+                                      {copiedField === `nid-${result._id}` ? (
+                                        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-4 h-4 text-gray-500 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* ═══ Info Grid 2x3 ═══ */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  {/* পিতা/স্বামী */}
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-sky-500/20 transition-all">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="w-5 h-5 bg-sky-500/10 rounded-md flex items-center justify-center">
+                                        <svg className="w-2.5 h-2.5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">পিতা/স্বামী</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-white leading-snug">{result.fatherOrHusbandName || "তথ্য নেই"}</p>
+                                  </div>
+
+                                  {/* মাতা */}
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-rose-500/20 transition-all">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="w-5 h-5 bg-rose-500/10 rounded-md flex items-center justify-center">
+                                        <svg className="w-2.5 h-2.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">মাতা</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-white leading-snug">{result.motherName || "তথ্য নেই"}</p>
+                                  </div>
+
+                                  {/* জন্ম তারিখ */}
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-blue-500/20 transition-all">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="w-5 h-5 bg-blue-500/10 rounded-md flex items-center justify-center">
+                                        <svg className="w-2.5 h-2.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">জন্ম তারিখ</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-white">{formatDate(result.dateOfBirth)}</p>
+                                  </div>
+
+                                  {/* বয়স */}
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-amber-500/20 transition-all">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="w-5 h-5 bg-amber-500/10 rounded-md flex items-center justify-center">
+                                        <svg className="w-2.5 h-2.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">বয়স</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-white">
+                                      {toBangla(calcAge(result.dateOfBirth))} <span className="text-xs font-normal text-gray-500">বছর</span>
+                                    </p>
+                                  </div>
+
+                                  {/* ক্রমিক নম্বর */}
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-purple-500/20 transition-all">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="w-5 h-5 bg-purple-500/10 rounded-md flex items-center justify-center">
+                                        <svg className="w-2.5 h-2.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">ক্রমিক</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-white font-mono">{toBangla(result.serialNumber)}</p>
+                                  </div>
+
+                                  {/* গ্রাম */}
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3.5 hover:border-emerald-500/20 transition-all">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <div className="w-5 h-5 bg-emerald-500/10 rounded-md flex items-center justify-center">
+                                        <svg className="w-2.5 h-2.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[9px] text-gray-500 uppercase tracking-wider font-medium">গ্রাম</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-white">{result.village}</p>
+                                  </div>
+                                </div>
+
+                                {/* ═══ Polling Center ═══ */}
+                                <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500/[0.06] to-teal-500/[0.04] border border-emerald-500/10 rounded-xl p-4">
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full" />
+                                  <div className="pl-3 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0">
+                                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+                                      </svg>
+                                    </div>
+                                    <div>
+                                      <p className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">ভোটকেন্দ্র</p>
+                                      <p className="text-sm font-bold text-emerald-400 mt-1 leading-snug">{result.pollingCenter}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* ═══ Source Meta ═══ */}
+                                <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl">
+                                  <div className="flex items-center justify-between px-4 py-2.5">
+                                    <span className="text-[10px] text-gray-500 font-medium">Source</span>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
+                                      result.addedBy === "system"
+                                        ? "text-amber-400 bg-amber-500/10 border border-amber-500/15"
+                                        : "text-emerald-400 bg-emerald-500/10 border border-emerald-500/15"
+                                    }`}>
+                                      {result.addedBy === "system" ? "🔒 System" : "✏️ Self"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Search Again */}
+                  <button
+                    onClick={handleClear}
+                    className="w-full py-3 bg-white/[0.03] border border-white/[0.06] text-gray-400 rounded-xl text-xs font-medium hover:bg-white/[0.06] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    নতুন অনুসন্ধান করুন
+                  </button>
                 </div>
               )}
 
               {/* Empty State */}
-              {!result && !error && !searched && (
+              {results.length === 0 && !error && !searched && (
                 <div className="text-center py-10">
                   <div className="relative inline-block">
                     <div className="absolute -inset-4 bg-purple-500/[0.03] rounded-full blur-2xl" />
@@ -726,10 +712,9 @@ export default function SearchPage() {
           50% { opacity: 1; }
           100% { transform: translateY(0) scale(1); }
         }
-        @keyframes checkPop {
-          0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-          50% { transform: scale(1.2) rotate(0deg); }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        @keyframes slideDown {
+          from { opacity: 0; max-height: 0; }
+          to { opacity: 1; max-height: 1000px; }
         }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

@@ -1,8 +1,6 @@
-// app/api/search/route.ts
+import { VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
 import { connectDB } from "@/lib/db";
-import { generateUserId, VILLAGES_NAME_NEW } from "@/app/api/newvoter/utils";
-import { VILLAGES_NAME } from "@/app/api/utils";
-import Voter from "@/lib/model/voters";
+import VoterData from "@/lib/model/votersData";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -23,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const serial = parseInt(serialNumber);
+    const serial = parseInt(serialNumber, 10);       // ✅ Fix: parse
     if (isNaN(serial) || serial <= 0) {
       return NextResponse.json(
         {
@@ -47,16 +45,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ─── Generate userId (same hash as save time) ───
-    const userId = generateUserId(serial, village);
- 
-
     // ─── Database Query ───
     await connectDB();
 
-    const voter = await Voter.findOne({ userId }).lean();
+    // ✅ Fix: find() → একই serial+village এ ২ জন থাকতে পারে
+    // ✅ Fix: serial (Number) পাঠাচ্ছি, string না
+    const voters = await VoterData.find({
+      serialNumber: serial,
+      village: village,
+    })
+      .select("-__v")
+      .lean();
 
-    if (!voter) {
+    if (!voters || voters.length === 0) {
       return NextResponse.json(
         {
           success: false,
@@ -67,23 +68,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // ✅ response data clean
+    const cleanData = voters.map((voter) => ({
+      _id: voter._id,
+      name: voter.name,
+      dateOfBirth: voter.dateOfBirth,
+      serialNumber: voter.serialNumber,
+      voterNumber: voter.voterNumber,
+      village: voter.village,
+      motherName: voter.motherName,
+      fatherOrHusbandName: voter.fatherOrHusbandName,
+      pollingCenter: voter.pollingCenter,
+      addedBy: voter.addedBy,
+      createdAt: voter.createdAt,
+    }));
+
     return NextResponse.json({
       success: true,
-      message: "ভোটার পাওয়া গেছে",
-      data: {
-        _id: voter._id,
-        userId: voter.userId,
-        name: voter.name,
-        dateOfBirth: voter.dateOfBirth,
-        serialNumber: voter.serialNumber,
-        voterNumber: voter.voterNumber,
-        village: voter.village,
-        motherName: voter.motherName,
-        fatherOrHusbandName: voter.fatherOrHusbandName,
-        pollingCenter: voter.pollingCenter,
-        addedBy: voter.addedBy,
-        createdAt: voter.createdAt,
-      },
+      message: `${cleanData.length} জন ভোটার পাওয়া গেছে`,
+      total: cleanData.length,
+      data: cleanData,
     });
   } catch (error: unknown) {
     console.error("Search error:", error);

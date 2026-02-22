@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
-import Voter from "@/lib/model/voters";
+import VoterData from "@/lib/model/votersData";
+
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -20,14 +21,14 @@ export async function GET() {
 
     const [totalVoters, todayAdded, thisMonthAdded, latestVoter] =
       await Promise.all([
-        Voter.countDocuments(),
-        Voter.countDocuments({
+        VoterData.countDocuments(),
+        VoterData.countDocuments({
           createdAt: { $gte: todayStart },
         }),
-        Voter.countDocuments({
+        VoterData.countDocuments({
           createdAt: { $gte: monthStart },
         }),
-        Voter.findOne()
+        VoterData.findOne()
           .sort({ serialNumber: -1 })
           .select("serialNumber")
           .lean(),

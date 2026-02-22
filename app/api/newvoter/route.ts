@@ -1,15 +1,17 @@
-// app/api/newvoter/route.ts
 import { connectDB } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import {
   banglaDOBToDate,
   banglaSerialToNumber,
   banglaToEnglishDigits,
-  generateUserId,
+  banglaVoterNoToNumber,
 } from "./utils";
-import Voter from "@/lib/model/voters";
+import VoterData from "@/lib/model/votersData";
 
-// ─── Types ───
+// ═══════════════════════════════════════════
+//  Types — External API
+// ═══════════════════════════════════════════
+
 interface ExternalVoter {
   Id: number;
   Serial: string;
@@ -27,7 +29,6 @@ interface ExternalVoter {
   Is_Father: boolean | null;
   Is_Migrated: boolean | null;
   Pdf_Information_Id: number;
-  addedBy:string
 }
 
 interface ExternalAPIResponse {
@@ -47,6 +48,43 @@ interface RequestBody {
   Identification?: string;
 }
 
+// ═══════════════════════════════════════════
+//  Cleaned Voter — DB তে যা save হবে
+//  ❌ userId নেই
+//  ✅ voterNumber = number (unique)
+//  ✅ সব digit ইংরেজিতে
+// ═══════════════════════════════════════════
+
+interface CleanedVoter {
+  name: string;
+  dateOfBirth: string;        // response এ string
+  serialNumber: number;
+  voterNumber: number;
+  village: string;
+  motherName: string;
+  fatherOrHusbandName: string;
+  pollingCenter: string;
+  addedBy: string;
+}
+
+function cleanVoter(v: ExternalVoter): CleanedVoter {
+  return {
+    name: v.Name,
+    dateOfBirth: banglaToEnglishDigits(v.DOB_Bangla),  // "01/01/1990"
+    serialNumber: banglaSerialToNumber(v.Serial),       // 123
+    voterNumber: banglaVoterNoToNumber(v.Voter_No),     // 123456789
+    village: v.AreaName,
+    motherName: v.Mother || "Unknown",
+    fatherOrHusbandName: v.Husband_Father || "Unknown",
+    pollingCenter: v.CenterName || "Unknown",
+    addedBy: "system",
+  };
+}
+
+// ═══════════════════════════════════════════
+//  Config
+// ═══════════════════════════════════════════
+
 const EXTERNAL_URL =
   "https://vapi.aesysit.com/api/Data/GetVoterInfoListByNameDOBWard";
 
@@ -54,168 +92,196 @@ const DEFAULT_ID =
   process.env.VOTER_API_IDENTIFICATION ||
   "kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==";
 
-// ─── Bangla DOB → English formatted date ───
-// "০১/০১/২০০০" → "01/01/2000"
-const banglaDateToEnglish = (banglaDob: string): string => {
-  return banglaToEnglishDigits(banglaDob);
-};
+// ═══════════════════════════════════════════
+//  JSON Response Builder
+// ═══════════════════════════════════════════
 
-// ════════════════════════════════════════
-// POST /api/newvoter
-// ════════════════════════════════════════
+function apiResponse(
+  statusCode: number,
+  success: boolean,
+  message: string,
+  data: CleanedVoter[] = [],
+  extra: Record<string, unknown> = {}
+) {
+  return NextResponse.json(
+    {
+      statusCode,
+      success,
+      message,
+      total: data.length,
+      data,
+      timestamp: new Date().toISOString(),
+      ...extra,
+    },
+    { status: statusCode >= 500 ? statusCode : 200 }
+  );
+}
+
+// ═══════════════════════════════════════════
+//  POST /api/newvoter
+// ═══════════════════════════════════════════
+
 export async function POST(req: NextRequest) {
   try {
     const body: RequestBody = await req.json();
     const { DOB, Ward, Identification } = body;
 
+    // ── Validation ──
     if (!DOB || !Ward) {
-      return NextResponse.json(
-        {
-          statusCode: 400,
-          success: false,
-          message: "DOB এবং Ward দিতে হবে",
-          data: [],
-          source: null,
-        },
-        { status: 400 }
+      return apiResponse(400, false, "DOB এবং Ward দিতে হবে");
+    }
+
+    // ╔══════════════════════════════════════╗
+    // ║  STEP 1 → External API Call         ║
+    // ╚══════════════════════════════════════╝
+
+    let externalRes: Response;
+
+    try {
+      externalRes = await fetch(EXTERNAL_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          DOB,
+          Ward,
+          Identification: Identification || DEFAULT_ID,
+          isArea: Ward !== "নরেন্দ্রপুর",
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (fetchErr) {
+      console.error("❌ External API fetch failed:", fetchErr);
+      return apiResponse(
+        502,
+        false,
+        "External API তে সংযোগ করা যায়নি",
+        [],
+        { source: "api_timeout" }
       );
     }
 
-    // ╔══════════════════════════════════════════╗
-    // ║ STEP 1: External API কল                  ║
-    // ╚══════════════════════════════════════════╝
-    const externalRes = await fetch(EXTERNAL_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        DOB,
-        Ward,
-        Identification: Identification || DEFAULT_ID,
-        isArea: Ward === "নরেন্দ্রপুর" ? false : true,
-      }),
-    });
-
     if (!externalRes.ok) {
-      return NextResponse.json(
-        {
-          statusCode: 502,
-          success: false,
-          message: `External API error: ${externalRes.status}`,
-          data: [],
-          source: "api_error",
-        },
-        { status: 502 }
+      return apiResponse(
+        502,
+        false,
+        `External API error: ${externalRes.status} ${externalRes.statusText}`,
+        [],
+        { source: "api_error" }
       );
     }
 
     const externalData: ExternalAPIResponse = await externalRes.json();
 
     if (!externalData.IsSuccess) {
-      return NextResponse.json(
-        {
-          statusCode: 400,
-          success: false,
-          message: externalData.Message || "External API ব্যর্থ",
-          data: [],
-          source: "api_error",
-        },
-        { status: 400 }
+      return apiResponse(
+        400,
+        false,
+        externalData.Message || "External API ব্যর্থ হয়েছে",
+        [],
+        { source: "api_error" }
       );
     }
 
-    const voters: ExternalVoter[] = externalData.Data?.data || [];
+    const rawVoters: ExternalVoter[] = externalData.Data?.data ?? [];
 
-    if (voters.length === 0) {
-      return NextResponse.json({
-        statusCode: 200,
-        success: true,
-        message: "কোনো ভোটার পাওয়া যায়নি",
-        data: [],
+    if (rawVoters.length === 0) {
+      return apiResponse(200, true, "কোনো ভোটার পাওয়া যায়নি", [], {
         source: "api",
-        timestamp: new Date().toISOString(),
       });
     }
 
-    // ╔══════════════════════════════════════════╗
-    // ║ STEP 2: সব English এ convert করো         ║
-    // ╚══════════════════════════════════════════╝
-    const responseData = voters.map((v) => ({
-      name: v.Name,
-      dateOfBirth: banglaDateToEnglish(v.DOB_Bangla),
-      serialNumber: banglaSerialToNumber(v.Serial),
-      voterNumber: banglaToEnglishDigits(v.Voter_No),
-      village: v.AreaName,
-      motherName: v.Mother || "Unknown",
-      fatherOrHusbandName: v.Husband_Father || "Unknown",
-      pollingCenter: v.CenterName || "Unknown",
-      addedBy:"system"
-    }));
+    // ╔══════════════════════════════════════╗
+    // ║  STEP 2 → Clean + Convert           ║
+    // ║  সব ইংরেজিতে, null বাদ              ║
+    // ║  voterNumber = number               ║
+    // ╚══════════════════════════════════════╝
 
-    // ╔══════════════════════════════════════════╗
-    // ║ STEP 3: DB তে save (নতুন হলে insert)     ║
-    // ╚══════════════════════════════════════════╝
+    const cleanedVoters = rawVoters.map(cleanVoter);
+
+    // ╔══════════════════════════════════════════════╗
+    // ║  STEP 3 → DB Save                           ║
+    // ║  ❌ userId নেই                                ║
+    // ║  ✅ voterNumber দিয়ে duplicate check          ║
+    // ║  ✅ dateOfBirth → Date object                 ║
+    // ╚══════════════════════════════════════════════╝
+
+    let dbStats = { total: 0, newSaved: 0, existing: 0 };
+
     try {
       await connectDB();
 
-      const voterDocs = voters.map((v) => {
-        const serialNumber = banglaSerialToNumber(v.Serial);
-        const village = v.AreaName;
-        return {
-          userId: generateUserId(serialNumber, village),
-          name: v.Name,
-          dateOfBirth: banglaDOBToDate(v.DOB_Bangla),
-          serialNumber,
-          voterNumber: banglaToEnglishDigits(v.Voter_No),
-          village,
-          motherName: v.Mother || "Unknown",
-          fatherOrHusbandName: v.Husband_Father || "Unknown",
-          pollingCenter: v.CenterName || "Unknown",
-          addedBy: "system" as const,
-        };
-      });
+      // DB তে save করার জন্য docs তৈরি
+      const voterDocs = cleanedVoters.map((cv) => ({
+        name: cv.name,
+        dateOfBirth: banglaDOBToDate(cv.dateOfBirth),  // Date object
+        serialNumber: cv.serialNumber,
+        voterNumber: cv.voterNumber,                    // Number (unique)
+        village: cv.village,
+        motherName: cv.motherName,
+        fatherOrHusbandName: cv.fatherOrHusbandName,
+        pollingCenter: cv.pollingCenter,
+        addedBy: "system" as const,
+      }));
 
-      const allUserIds = voterDocs.map((d) => d.userId);
-      const existing = await Voter.find(
-        { userId: { $in: allUserIds } },
-        { userId: 1 }
+      // ── voterNumber দিয়ে duplicate check ──
+      const allVoterNumbers = voterDocs.map((d) => d.voterNumber);
+
+      const existingVoters = await VoterData.find(
+        { voterNumber: { $in: allVoterNumbers } },
+        { voterNumber: 1 }
       ).lean();
-      const existingIds = new Set(existing.map((e) => e.userId));
 
-      const newVoters = voterDocs.filter((d) => !existingIds.has(d.userId));
+      const existingSet = new Set(
+        existingVoters.map((e) => e.voterNumber as number)
+      );
 
+      const newVoters = voterDocs.filter(
+        (d) => !existingSet.has(d.voterNumber)
+      );
+
+      // ── নতুনগুলো insert ──
       if (newVoters.length > 0) {
-        await Voter.insertMany(newVoters, { ordered: false });
+        await VoterData.insertMany(newVoters, { ordered: false });
       }
 
-      // console.log(
-      //   `✅ API: ${voters.length} | New: ${newVoters.length} | Skipped: ${existingIds.size}`
-      // );
-    } catch (dbErr) {
-      console.warn("⚠️ DB save error:", dbErr);
+      dbStats = {
+        total: voterDocs.length,
+        newSaved: newVoters.length,
+        existing: existingSet.size,
+      };
+
+      console.log(
+        `📊 Total: ${dbStats.total} | New: ${dbStats.newSaved} | Exists: ${dbStats.existing}`
+      );
+    } catch (dbErr: unknown) {
+      // duplicate key error ignore, বাকি log
+      if (
+        dbErr instanceof Error &&
+        "code" in dbErr &&
+        (dbErr as { code: number }).code === 11000
+      ) {
+        console.log("ℹ️ Duplicate voters skipped (11000)");
+      } else {
+        console.error("⚠️ DB save error:", dbErr);
+      }
     }
 
-    // ╔══════════════════════════════════════════╗
-    // ║ STEP 4: English data return               ║
-    // ╚══════════════════════════════════════════╝
-    return NextResponse.json({
-      statusCode: 200,
-      success: true,
-      message: `${responseData.length} জন ভোটার পাওয়া গেছে`,
-      data: responseData,
-      source: "api",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error: unknown) {
-    console.error("Voter API Error:", error);
-    return NextResponse.json(
+    // ╔══════════════════════════════════════╗
+    // ║  STEP 4 → Response                  ║
+    // ╚══════════════════════════════════════╝
+
+    return apiResponse(
+      200,
+      true,
+      `${cleanedVoters.length} জন ভোটার পাওয়া গেছে`,
+      cleanedVoters,
       {
-        statusCode: 500,
-        success: false,
-        message: "সার্ভার এরর হয়েছে",
-        data: [],
-        source: null,
-      },
-      { status: 500 }
+        source: "api",
+        db: dbStats,
+      }
     );
+  } catch (error: unknown) {
+    console.error("❌ Voter API Error:", error);
+    return apiResponse(500, false, "সার্ভার এরর হয়েছে");
   }
 }

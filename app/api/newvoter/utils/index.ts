@@ -1,46 +1,73 @@
-import crypto from "crypto";
+// ═══════════════════════════════════════════
+//  বাংলা → ইংরেজি ডিজিট ম্যাপ
+// ═══════════════════════════════════════════
 
-const banglaDigitMap: Record<string, string> = {
-  "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4",
-  "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9",
+const BANGLA_DIGIT_MAP: Record<string, string> = {
+  "০": "0",
+  "১": "1",
+  "২": "2",
+  "৩": "3",
+  "৪": "4",
+  "৫": "5",
+  "৬": "6",
+  "৭": "7",
+  "৮": "8",
+  "৯": "9",
 };
 
-const englishDigitMap: Record<string, string> = {
-  "0": "০", "1": "১", "2": "২", "3": "৩", "4": "৪",
-  "5": "৫", "6": "৬", "7": "৭", "8": "৮", "9": "৯",
-};
-
-export function banglaToEnglishDigits(bangla: string): string {
-  return bangla.replace(/[০-৯]/g, (m) => banglaDigitMap[m] || m);
+// ═══════════════════════════════════════════
+//  বাংলা ডিজিট → ইংরেজি স্ট্রিং
+//  "১২৩" → "123"
+// ═══════════════════════════════════════════
+export function banglaToEnglishDigits(str: string): string {
+  if (!str) return str;
+  return str.replace(/[০-৯]/g, (d) => BANGLA_DIGIT_MAP[d] || d);
 }
 
-export function englishToBanglaDigits(english: string): string {
-  return english.replace(/[0-9]/g, (m) => englishDigitMap[m] || m);
+// ═══════════════════════════════════════════
+//  বাংলা সিরিয়াল → Number
+//  "১২৩" → 123
+// ═══════════════════════════════════════════
+export function banglaSerialToNumber(serial: string): number {
+  const eng = banglaToEnglishDigits(serial).replace(/[^0-9]/g, "");
+  return parseInt(eng, 10) || 0;
 }
 
-// "০১/০১/২০০১" → Date
-export function banglaDOBToDate(banglaDOB: string): Date {
-  const eng = banglaToEnglishDigits(banglaDOB);
-  const [dd, mm, yyyy] = eng.split("/");
-  return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`);
+// ═══════════════════════════════════════════
+//  বাংলা ভোটার নম্বর → Number
+//  "০১২৩৪৫৬৭৮৯" → 123456789
+// ═══════════════════════════════════════════
+export function banglaVoterNoToNumber(voterNo: string): number {
+  const eng = banglaToEnglishDigits(voterNo).replace(/[^0-9]/g, "");
+  return parseInt(eng, 10) || 0;
 }
 
-// "০৯১২" → 912
-export function banglaSerialToNumber(banglaSerial: string): number {
-  return parseInt(banglaToEnglishDigits(banglaSerial), 10);
+// ═══════════════════════════════════════════
+//  বাংলা DOB → Date object
+//  "০১/০১/১৯৯০" → Date(1990-01-01)
+//  "01/01/1990"  → Date(1990-01-01)
+// ═══════════════════════════════════════════
+export function banglaDOBToDate(dob: string): Date {
+  const eng = banglaToEnglishDigits(dob);
+
+  // ফরম্যাট: DD/MM/YYYY বা DD-MM-YYYY
+  const parts = eng.split(/[\/\-\.]/);
+
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // JS month 0-indexed
+    const year = parseInt(parts[2], 10);
+
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+
+  // fallback: direct parse
+  const fallback = new Date(eng);
+  return isNaN(fallback.getTime()) ? new Date() : fallback;
 }
 
-// ╔══════════════════════════════════════════════════╗
-// ║ userId = MD5 hash of "serialNumber::village"     ║
-// ║ দ্রুত single voter lookup এর জন্য               ║
-// ╚══════════════════════════════════════════════════╝
-export function generateUserId(
-  serialNumber: number,
-  village: string
-): string {
-  const raw = `${serialNumber}::${village.trim()}`;
-  return crypto.createHash("md5").update(raw).digest("hex");
-}
 
 export interface VillageOption {
   id: string;

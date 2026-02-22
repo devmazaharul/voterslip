@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateUserId } from "../../newvoter/utils";
-import Voter from "@/lib/model/voters";
 import { connectDB } from "@/lib/db";
+import VoterData from "@/lib/model/votersData";
+
 
 // ─── GET: List Voters ───
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
+
     const url = new URL(req.url);
     const page = parseInt(url.searchParams.get("page") || "1");
     const limit = parseInt(url.searchParams.get("limit") || "10");
@@ -15,31 +16,41 @@ export async function GET(req: NextRequest) {
     const sortOrder = url.searchParams.get("sortOrder") || "desc";
     const fromDate = url.searchParams.get("fromDate") || "";
     const toDate = url.searchParams.get("toDate") || "";
-    // ★ নতুন — village filter param
     const village = url.searchParams.get("village") || "";
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filter: any = {};
 
-    // ★ Village exact match filter
+    // ── Village exact match ──
     if (village) {
       filter.village = village;
     }
 
+    // ── Search ──
     if (search) {
-      const serialNum = parseInt(search);
-      filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { motherName: { $regex: search, $options: "i" } },
-        { fatherOrHusbandName: { $regex: search, $options: "i" } },
-        { village: { $regex: search, $options: "i" } },
-        { voterNumber: { $regex: search, $options: "i" } },
-        { pollingCenter: { $regex: search, $options: "i" } },
-        { userId: { $regex: search, $options: "i" } },
-        ...(isNaN(serialNum) ? [] : [{ serialNumber: serialNum }]),
-      ];
+      const searchTrimmed = search.trim();
+      const searchAsNum = parseInt(searchTrimmed, 10);
+      const isNumericSearch = !isNaN(searchAsNum) && searchAsNum > 0;
+
+      if (isNumericSearch) {
+        // ✅ নম্বর দিয়ে সার্চ → serialNumber বা voterNumber
+        filter.$or = [
+          { serialNumber: searchAsNum },
+          { voterNumber: searchAsNum },
+        ];
+      } else {
+        // ✅ টেক্সট দিয়ে সার্চ → name, village, etc.
+        filter.$or = [
+          { name: { $regex: searchTrimmed, $options: "i" } },
+          { motherName: { $regex: searchTrimmed, $options: "i" } },
+          { fatherOrHusbandName: { $regex: searchTrimmed, $options: "i" } },
+          { village: { $regex: searchTrimmed, $options: "i" } },
+          { pollingCenter: { $regex: searchTrimmed, $options: "i" } },
+        ];
+      }
     }
 
+    // ── Date filter ──
     if (fromDate || toDate) {
       filter.dateOfBirth = {};
       if (fromDate) filter.dateOfBirth.$gte = new Date(fromDate);
@@ -50,14 +61,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const total = await Voter.countDocuments(filter);
+    const total = await VoterData.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
     const skip = (page - 1) * limit;
     const sortObj: Record<string, 1 | -1> = {
       [sortBy]: sortOrder === "asc" ? 1 : -1,
     };
 
-    const data = await Voter.find(filter)
+    const data = await VoterData.find(filter)
+      .select("-__v")                                   // ✅ __v বাদ
       .sort(sortObj)
       .skip(skip)
       .limit(limit)
@@ -76,9 +88,9 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("GET items error:", error);
+    console.error("GET voters error:", error);
     return NextResponse.json(
-      { success: false, message: "Server error" },
+      { success: false, message: "সার্ভারে সমস্যা হয়েছে" },
       { status: 500 }
     );
   }
@@ -88,6 +100,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
+
     const body = await req.json();
     const {
       name,
@@ -100,7 +113,7 @@ export async function POST(req: NextRequest) {
       pollingCenter,
     } = body;
 
-    // Validation
+    // ── Validation ──
     if (
       !name ||
       !dateOfBirth ||
@@ -119,43 +132,67 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // userId generate
-    const userId = generateUserId(parseInt(serialNumber), village);
-
-    // Duplicate check
-    const exists = await Voter.findOne({ userId });
-    if (exists) {
+    // ✅ voterNumber → Number parse
+    const voterNum = parseInt(String(voterNumber).trim(), 10);
+    if (isNaN(voterNum) || voterNum <= 0) {
       return NextResponse.json(
         {
           success: false,
-          message: `Serial #${serialNumber} ইতিমধ্যে "${village}" তে আছে`,
+          message: "সঠিক ভোটার নম্বর দিন",
         },
         { status: 400 }
       );
     }
 
-    const voter = await Voter.create({
-      userId,
-      name,
+    // ✅ serialNumber → Number parse
+    const serialNum = parseInt(String(serialNumber).trim(), 10);
+    if (isNaN(serialNum) || serialNum <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "সঠিক ক্রমিক নম্বর দিন",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ── Duplicate check by voterNumber ──
+    const exists = await VoterData.findOne({ voterNumber: voterNum });
+    if (exists) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `ভোটার নম্বর ${voterNum} ইতিমধ্যে আছে`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // ── Create voter ──
+    const voter = await VoterData.create({
+      name: name.trim(),
       dateOfBirth: new Date(dateOfBirth),
-      serialNumber: parseInt(serialNumber),
-      voterNumber,
-      village,
-      motherName: motherName || "Unknown",
-      fatherOrHusbandName: fatherOrHusbandName || "Unknown",
-      pollingCenter,
+      serialNumber: serialNum,                  // ✅ Number
+      voterNumber: voterNum,                    // ✅ Number
+      village: village.trim(),
+      motherName: motherName?.trim() || "Unknown",
+      fatherOrHusbandName: fatherOrHusbandName?.trim() || "Unknown",
+      pollingCenter: pollingCenter.trim(),
       addedBy: "self",
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Voter added successfully",
-      data: voter,
-    });
-  } catch (error) {
-    console.error("POST items error:", error);
     return NextResponse.json(
-      { success: false, message: "Server error" },
+      {
+        success: true,
+        message: "ভোটার সফলভাবে যোগ হয়েছে",
+        data: voter,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("POST voter error:", error);
+    return NextResponse.json(
+      { success: false, message: "সার্ভারে সমস্যা হয়েছে" },
       { status: 500 }
     );
   }
