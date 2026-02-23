@@ -13,7 +13,7 @@ import {
   Sparkles, Heart, Fingerprint, Building2, Clock,
   BadgeCheck, ChevronDown, Globe, CheckCircle2, X,
   ArrowRight, Copy, Check, Database, Wifi, List,
-  Shield, Hash, Users,
+  Shield, Hash, Users, CloudOff, ServerCrash, Coffee,
 } from 'lucide-react';
 import { VillageOption, VILLAGES_NEW } from './api/newvoter/utils';
 
@@ -43,6 +43,33 @@ interface ApiResponse {
 
 const API_URL = '/api/newvoter';
 
+// ═══════════════════════════════════════════
+// ফানি CLIENT-SIDE MESSAGES 😎
+// ═══════════════════════════════════════════
+const FUN_MSG = {
+  NO_VILLAGE: 'আগে গ্রাম সিলেক্ট করো ভাই! গ্রাম ছাড়া ভোটার খুঁজবো কোথায়, মঙ্গল গ্রহে? 🪐',
+  BAD_DOB: 'তারিখটা ঠিকমতো দাও ভাই! DD/MM/YYYY — এত কঠিন? 🤦‍♂️',
+  NETWORK_DEAD: 'ইন্টারনেট কি ঘুমাচ্ছে নাকি? 😴 WiFi চেক করো ভাই!',
+  UNKNOWN_ERROR: 'কী হইলো বুঝলাম না! 🤯 আবার চেষ্টা করো, এইবার হয়তো হবে!',
+  LOADING_TEXTS: [
+    'ভোটার খুঁজছি... ওরা কোথায় লুকাইছে? 🔍',
+    'ডাটাবেস ঘেঁটে দেখছি... একটু সবুর করো! ⏳',
+    'সার্ভারকে জিজ্ঞেস করছি... সে ভাবছে... 🤔',
+    'খুঁজছি খুঁজছি... হারিয়ে যায়নি তো? 🕵️',
+  ],
+  EMPTY_RESULTS: [
+    'খালি হাতে ফিরলাম! 🤷‍♂️ এই তথ্যে কেউ নাই ভাই!',
+    'ভোটার পাওয়া যায়নি! ভুল তারিখ দিওনি তো? 🧐',
+    'কেউ নাই, কেউ নাই! শুনশান! 🦗 তথ্য চেক করো!',
+  ],
+} as const;
+
+const getRandomItem = <T,>(arr: readonly T[]): T =>
+  arr[Math.floor(Math.random() * arr.length)];
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
 const bangDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
 const toBanglaDigits = (v: string | number): string =>
   String(v).replace(/[0-9]/g, d => bangDigits[Number(d)]);
@@ -84,6 +111,123 @@ const useCopy = () => {
     setTimeout(() => setCopied(null), 2000);
   };
   return { copied, copy };
+};
+
+// ═══════════════════════════════════════════
+// ERROR TYPE DETECTION — কোন ধরনের error?
+// ═══════════════════════════════════════════
+type ErrorType = 'validation' | 'network' | 'server' | 'notfound' | 'general';
+
+const detectErrorType = (msg: string): ErrorType => {
+  const lower = msg.toLowerCase();
+  if (lower.includes('dob') || lower.includes('ward') || lower.includes('জন্মতারিখ') || lower.includes('গ্রাম') || lower.includes('ফরম্যাট'))
+    return 'validation';
+  if (lower.includes('ঘুমে') || lower.includes('timeout') || lower.includes('নেটওয়ার্ক') || lower.includes('wifi') || lower.includes('ইন্টারনেট') || lower.includes('সাড়া'))
+    return 'network';
+  if (lower.includes('সার্ভার') || lower.includes('মাথা গরম') || lower.includes('চা') || lower.includes('server'))
+    return 'server';
+  if (lower.includes('পাওয়া যায়নি') || lower.includes('খুঁজে') || lower.includes('নাই'))
+    return 'notfound';
+  return 'general';
+};
+
+const errorConfig: Record<ErrorType, {
+  icon: React.ReactNode;
+  bg: string;
+  border: string;
+  iconBg: string;
+  textColor: string;
+  label: string;
+}> = {
+  validation: {
+    icon: <AlertCircle className="w-4 h-4" />,
+    bg: 'bg-amber-500/[0.05]',
+    border: 'border-amber-500/15',
+    iconBg: 'bg-amber-500/15',
+    textColor: 'text-amber-300/80',
+    label: 'ভুল তথ্য 🤦‍♂️',
+  },
+  network: {
+    icon: <CloudOff className="w-4 h-4" />,
+    bg: 'bg-orange-500/[0.05]',
+    border: 'border-orange-500/15',
+    iconBg: 'bg-orange-500/15',
+    textColor: 'text-orange-300/80',
+    label: 'কানেকশন সমস্যা 📡',
+  },
+  server: {
+    icon: <ServerCrash className="w-4 h-4" />,
+    bg: 'bg-red-500/[0.05]',
+    border: 'border-red-500/15',
+    iconBg: 'bg-red-500/15',
+    textColor: 'text-red-300/80',
+    label: 'সার্ভার সমস্যা 🔥',
+  },
+  notfound: {
+    icon: <Search className="w-4 h-4" />,
+    bg: 'bg-violet-500/[0.05]',
+    border: 'border-violet-500/15',
+    iconBg: 'bg-violet-500/15',
+    textColor: 'text-violet-300/80',
+    label: 'খুঁজে পাইনি 🤷‍♂️',
+  },
+  general: {
+    icon: <AlertCircle className="w-4 h-4" />,
+    bg: 'bg-red-500/[0.05]',
+    border: 'border-red-500/15',
+    iconBg: 'bg-red-500/15',
+    textColor: 'text-red-300/80',
+    label: 'ত্রুটি ⚠️',
+  },
+};
+
+// ═══════════════════════════════════════════
+// ERROR DISPLAY COMPONENT
+// ═══════════════════════════════════════════
+const FunError: React.FC<{
+  message: string;
+  onClose: () => void;
+}> = ({ message, onClose }) => {
+  const type = detectErrorType(message);
+  const config = errorConfig[type];
+
+  return (
+    <div className={`mt-4 relative overflow-hidden rounded-xl ${config.bg} border ${config.border} animate-[shake_0.4s_ease]`}>
+      {/* Top colored line */}
+      <div className={`h-[2px] w-full ${
+        type === 'validation' ? 'bg-gradient-to-r from-amber-500/40 via-yellow-500/30 to-amber-500/0' :
+        type === 'network' ? 'bg-gradient-to-r from-orange-500/40 via-orange-400/30 to-orange-500/0' :
+        type === 'server' ? 'bg-gradient-to-r from-red-500/40 via-red-400/30 to-red-500/0' :
+        type === 'notfound' ? 'bg-gradient-to-r from-violet-500/40 via-purple-400/30 to-violet-500/0' :
+        'bg-gradient-to-r from-red-500/40 via-red-400/30 to-red-500/0'
+      }`} />
+
+      <div className="px-3.5 py-3 flex items-start gap-3">
+        {/* Icon */}
+        <div className={`w-8 h-8 rounded-lg ${config.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
+          <span className={config.textColor}>{config.icon}</span>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p className={`text-[9px] font-bold uppercase tracking-widest ${config.textColor} opacity-70 mb-1`}>
+            {config.label}
+          </p>
+          <p className={`text-[11px] font-medium ${config.textColor} leading-relaxed`}>
+            {message}
+          </p>
+        </div>
+
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className={`p-1 rounded-md hover:bg-white/[0.05] transition-colors cursor-pointer shrink-0 mt-0.5`}
+        >
+          <X className="w-3.5 h-3.5 text-white/20 hover:text-white/40" />
+        </button>
+      </div>
+    </div>
+  );
 };
 
 // ═══════════════════════════════════════════
@@ -149,8 +293,7 @@ const CustomSelect: React.FC<{
           {selected ? selected.name : 'গ্রাম নির্বাচন করুন'}
         </span>
         {value && (
-          <button
-            type="button"
+          <button type="button"
             onClick={e => { e.stopPropagation(); onChange(''); }}
             className="p-0.5 rounded hover:bg-white/[0.06] cursor-pointer"
           >
@@ -170,20 +313,14 @@ const CustomSelect: React.FC<{
               {options.map((opt, i) => {
                 const sel = opt.id === value;
                 return (
-                  <button
-                    key={opt.id}
-                    type="button"
+                  <button key={opt.id} type="button"
                     onClick={() => { onChange(opt.id); setOpen(false); }}
                     className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer mb-px ${
-                      sel
-                        ? 'bg-indigo-500/10 text-indigo-300'
-                        : 'text-white/60 hover:bg-white/[0.04] hover:text-white/80'
+                      sel ? 'bg-indigo-500/10 text-indigo-300' : 'text-white/60 hover:bg-white/[0.04] hover:text-white/80'
                     }`}
                   >
                     <span className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center shrink-0 ${
-                      sel
-                        ? 'bg-indigo-500 text-white'
-                        : 'bg-white/[0.04] text-white/25'
+                      sel ? 'bg-indigo-500 text-white' : 'bg-white/[0.04] text-white/25'
                     }`}>
                       {sel ? <Check className="w-3 h-3" /> : toBanglaDigits(i + 1)}
                     </span>
@@ -259,18 +396,14 @@ const VoterCard: React.FC<{ voter: VoterInfo; index: number }> = ({ voter, index
         opacity: 0,
       }}
     >
-      {/* Top accent */}
       <div className="h-[2px] w-full bg-gradient-to-r from-indigo-500/40 via-violet-500/30 to-indigo-500/0" />
 
-      {/* Header */}
       <div className="px-4 pt-3.5 pb-2.5 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/15 to-violet-500/10 border border-indigo-500/10 flex items-center justify-center text-sm font-bold text-indigo-300/80 shrink-0 group-hover:scale-105 transition-transform duration-300">
           {voter.name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[14px] font-bold text-white/90 truncate leading-tight">
-            {voter.name}
-          </h3>
+          <h3 className="text-[14px] font-bold text-white/90 truncate leading-tight">{voter.name}</h3>
           <div className="flex items-center gap-1.5 mt-1">
             <span className="text-[8px] font-semibold text-indigo-300/50 bg-indigo-500/8 px-1.5 py-[2px] rounded border border-indigo-500/8">
               📍 {voter.village}
@@ -286,7 +419,6 @@ const VoterCard: React.FC<{ voter: VoterInfo; index: number }> = ({ voter, index
         </div>
       </div>
 
-      {/* Voter Number */}
       <div className="mx-4 mb-3">
         <div className="relative overflow-hidden flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-500/[0.04] border border-indigo-500/8">
           <div className="absolute left-0 top-1 bottom-1 w-[2px] bg-indigo-500/30 rounded-full" />
@@ -312,46 +444,15 @@ const VoterCard: React.FC<{ voter: VoterInfo; index: number }> = ({ voter, index
         </div>
       </div>
 
-      {/* Info Grid */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-2 gap-2">
           {[
-            {
-              label: 'সিরিয়াল',
-              value: toBanglaDigits(voter.serialNumber),
-              icon: <Hash className="w-3 h-3" />,
-              color: 'text-sky-400/50',
-              bg: 'bg-sky-500/6',
-              border: 'border-sky-500/6',
-            },
-            {
-              label: 'জন্ম তারিখ',
-              value: formatDisplayDate(voter.dateOfBirth),
-              icon: <Clock className="w-3 h-3" />,
-              color: 'text-amber-400/50',
-              bg: 'bg-amber-500/6',
-              border: 'border-amber-500/6',
-              mono: true,
-            },
-            {
-              label: 'পিতা/স্বামী',
-              value: voter.fatherOrHusbandName,
-              icon: <User className="w-3 h-3" />,
-              color: 'text-indigo-400/50',
-              bg: 'bg-indigo-500/6',
-              border: 'border-indigo-500/6',
-            },
-            {
-              label: 'মাতা',
-              value: voter.motherName,
-              icon: <Heart className="w-3 h-3" />,
-              color: 'text-rose-400/50',
-              bg: 'bg-rose-500/6',
-              border: 'border-rose-500/6',
-            },
+            { label: 'সিরিয়াল', value: toBanglaDigits(voter.serialNumber), icon: <Hash className="w-3 h-3" />, color: 'text-sky-400/50', bg: 'bg-sky-500/6', border: 'border-sky-500/6' },
+            { label: 'জন্ম তারিখ', value: formatDisplayDate(voter.dateOfBirth), icon: <Clock className="w-3 h-3" />, color: 'text-amber-400/50', bg: 'bg-amber-500/6', border: 'border-amber-500/6', mono: true },
+            { label: 'পিতা/স্বামী', value: voter.fatherOrHusbandName, icon: <User className="w-3 h-3" />, color: 'text-indigo-400/50', bg: 'bg-indigo-500/6', border: 'border-indigo-500/6' },
+            { label: 'মাতা', value: voter.motherName, icon: <Heart className="w-3 h-3" />, color: 'text-rose-400/50', bg: 'bg-rose-500/6', border: 'border-rose-500/6' },
           ].map(item => (
-            <div
-              key={item.label}
+            <div key={item.label}
               className={`flex items-center gap-2 px-2.5 py-2 rounded-lg ${item.bg} border ${item.border} hover:border-white/[0.06] transition-all group/i`}
             >
               <div className={`w-6 h-6 rounded-md ${item.bg} flex items-center justify-center shrink-0 group-hover/i:scale-110 transition-transform`}>
@@ -368,7 +469,6 @@ const VoterCard: React.FC<{ voter: VoterInfo; index: number }> = ({ voter, index
         </div>
       </div>
 
-      {/* Polling Center */}
       {voter.pollingCenter && (
         <div className="mx-4 mb-3">
           <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/8">
@@ -412,6 +512,17 @@ const VoterFormTwo: React.FC = () => {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
   const [dataSource, setDataSource] = useState<string | null>(null);
+  const [loadingText, setLoadingText] = useState('');
+
+  // ── Rotate loading text ──
+  useEffect(() => {
+    if (!loading) return;
+    setLoadingText(getRandomItem(FUN_MSG.LOADING_TEXTS));
+    const interval = setInterval(() => {
+      setLoadingText(getRandomItem(FUN_MSG.LOADING_TEXTS));
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const handleDobChange = (e: ChangeEvent<HTMLInputElement>) =>
     setDob(formatDateInput(e.target.value));
@@ -421,8 +532,11 @@ const VoterFormTwo: React.FC = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(''); setResults([]); setSearched(false); setDataSource(null);
-    if (!wardId) return setError('একটি গ্রাম নির্বাচন করুন।');
-    if (!isDobValid) return setError('DD/MM/YYYY ফরম্যাটে তারিখ দিন।');
+
+    // ── Client-side fun validation ──
+    if (!wardId) return setError(FUN_MSG.NO_VILLAGE);
+    if (!isDobValid) return setError(FUN_MSG.BAD_DOB);
+
     setLoading(true);
     try {
       const { data } = await axios.post<ApiResponse>(API_URL, {
@@ -432,13 +546,21 @@ const VoterFormTwo: React.FC = () => {
       setDataSource(data.source || null);
       if (data.success) {
         setResults(data.data || []);
-        if (!data.data?.length) setError('কোনো তথ্য পাওয়া যায়নি।');
-      } else setError(data.message || 'তথ্য পাওয়া যায়নি।');
+        // ── Backend fun message পাস করো ──
+        if (!data.data?.length) setError(data.message || getRandomItem(FUN_MSG.EMPTY_RESULTS));
+      } else {
+        // ── Backend এর ফানি message সরাসরি দেখাও ──
+        setError(data.message || 'কিছু একটা হইলো ভাই! 🤔');
+      }
     } catch (err: unknown) {
       setSearched(true);
-      if (axios.isAxiosError(err))
-        setError(err.response?.data?.message || 'লোড করতে সমস্যা।');
-      else setError('নেটওয়ার্ক সমস্যা।');
+      if (axios.isAxiosError(err)) {
+        // ── Backend থেকে আসা ফানি message দেখাও ──
+        const serverMsg = err.response?.data?.message;
+        setError(serverMsg || FUN_MSG.NETWORK_DEAD);
+      } else {
+        setError(FUN_MSG.UNKNOWN_ERROR);
+      }
     } finally { setLoading(false); }
   };
 
@@ -458,9 +580,7 @@ const VoterFormTwo: React.FC = () => {
           <div className="mb-5">
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
               <div className="relative px-5 py-5 sm:px-6 sm:py-6">
-                {/* subtle bg */}
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent" />
-
                 <div className="relative flex items-start justify-between gap-3">
                   <div className="space-y-3">
                     <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.05]">
@@ -518,8 +638,7 @@ const VoterFormTwo: React.FC = () => {
 
               {/* DOB */}
               <div>
-                <label
-                  htmlFor="dob"
+                <label htmlFor="dob"
                   className="flex items-center gap-1.5 text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-2 pl-0.5"
                 >
                   <Calendar className="w-3 h-3 text-sky-400/50" />
@@ -538,13 +657,9 @@ const VoterFormTwo: React.FC = () => {
                     }`} />
                   </div>
                   <input
-                    id="dob"
-                    type="text"
-                    inputMode="numeric"
-                    value={dob}
-                    onChange={handleDobChange}
-                    placeholder="DD/MM/YYYY"
-                    autoComplete="off"
+                    id="dob" type="text" inputMode="numeric"
+                    value={dob} onChange={handleDobChange}
+                    placeholder="DD/MM/YYYY" autoComplete="off"
                     className="flex-1 bg-transparent text-[13px] font-semibold text-white/90 placeholder:text-white/15 focus:outline-none font-mono tracking-widest"
                   />
                   {isDobValid && (
@@ -564,9 +679,7 @@ const VoterFormTwo: React.FC = () => {
               </div>
 
               {/* Submit */}
-              <button
-                type="submit"
-                disabled={!canSubmit}
+              <button type="submit" disabled={!canSubmit}
                 className={`w-full py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden relative group/btn ${
                   !canSubmit
                     ? 'bg-white/[0.03] text-white/20 cursor-not-allowed border border-white/[0.04]'
@@ -578,7 +691,7 @@ const VoterFormTwo: React.FC = () => {
                 )}
                 <span className="relative flex items-center gap-2">
                   {loading ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> অনুসন্ধান চলছে</>
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> অনুসন্ধান চলছে...</>
                   ) : (
                     <><Search className="w-3.5 h-3.5" /> তথ্য খুঁজুন</>
                   )}
@@ -586,16 +699,8 @@ const VoterFormTwo: React.FC = () => {
               </button>
             </form>
 
-            {/* Error */}
-            {error && (
-              <div className="mt-4 px-3 py-2.5 bg-red-500/[0.05] border border-red-500/10 rounded-xl flex items-center gap-2.5 animate-[shake_0.3s]">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400/60 shrink-0" />
-                <p className="text-[11px] text-red-400/70 font-medium flex-1">{error}</p>
-                <button onClick={() => setError('')} className="p-0.5 cursor-pointer hover:bg-red-500/10 rounded transition-colors">
-                  <X className="w-3 h-3 text-red-400/30 hover:text-red-400/60" />
-                </button>
-              </div>
-            )}
+            {/* ═══ FUN ERROR DISPLAY ═══ */}
+            {error && <FunError message={error} onClose={() => setError('')} />}
           </div>
 
           {/* ═══ TAGS ═══ */}
@@ -614,8 +719,7 @@ const VoterFormTwo: React.FC = () => {
                 </span>
               )}
               {searched && results.length > 0 && (
-                <button
-                  onClick={reset}
+                <button onClick={reset}
                   className="ml-auto text-[9px] font-medium text-white/70 hover:text-white/70 bg-white/[0.03] hover:bg-white/[0.05] px-2 py-0.5 rounded-md border border-white/[0.05] cursor-pointer transition-all"
                 >
                   রিসেট
@@ -626,7 +730,6 @@ const VoterFormTwo: React.FC = () => {
 
           {/* ═══ RESULTS ═══ */}
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
-            {/* Result header */}
             <div className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
@@ -642,7 +745,7 @@ const VoterFormTwo: React.FC = () => {
                   <h2 className="text-[13px] font-bold text-white/80">ফলাফল</h2>
                   <p className="text-[9px] text-white/60 font-medium mt-px">
                     {searched && results.length > 0
-                      ? `${toBanglaDigits(results.length)} জন পাওয়া গেছে`
+                      ? `🎉 ${toBanglaDigits(results.length)} জন ধরা পড়েছে!`
                       : 'ফলাফল এখানে দেখুন'}
                   </p>
                 </div>
@@ -665,17 +768,17 @@ const VoterFormTwo: React.FC = () => {
                   <div className="w-14 h-14 rounded-2xl bg-indigo-500/[0.06] border border-indigo-500/8 flex items-center justify-center mx-auto mb-3">
                     <Search className="w-6 h-6 text-indigo-400/20" />
                   </div>
-                  <p className="text-[12px] font-semibold text-white/30 mb-1">তথ্য অনুসন্ধান করুন</p>
-                  <p className="text-[10px] text-white/15">গ্রাম ও জন্ম তারিখ দিন</p>
+                  <p className="text-[12px] font-semibold text-white/30 mb-1">ভোটার খুঁজতে চাও? 🤔</p>
+                  <p className="text-[10px] text-white/15">গ্রাম সিলেক্ট করো, জন্ম তারিখ দাও, ব্যাস! 🚀</p>
                   <div className="flex items-center justify-center gap-3 mt-4 text-[9px] text-white/15 font-medium">
                     <span className="flex items-center gap-1"><Shield className="w-3 h-3 text-emerald-400/30" /> নিরাপদ</span>
                     <span className="text-white/5">·</span>
-                    <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-indigo-400/30" /> দ্রুত</span>
+                    <span className="flex items-center gap-1"><Sparkles className="w-3 h-3 text-indigo-400/30" /> ঝটপট</span>
                   </div>
                 </div>
               )}
 
-              {/* Loading */}
+              {/* ═══ FUN LOADING ═══ */}
               {loading && (
                 <div className="text-center py-12">
                   <div className="relative w-14 h-14 mx-auto mb-4">
@@ -686,8 +789,10 @@ const VoterFormTwo: React.FC = () => {
                       <div className="w-2 h-2 rounded-full bg-indigo-400/40 animate-pulse" />
                     </div>
                   </div>
-                  <p className="text-[12px] font-semibold text-white/40">লোড হচ্ছে...</p>
-                  <p className="text-[10px] text-white/15 mt-0.5">অপেক্ষা করুন</p>
+                  <p className="text-[12px] font-semibold text-white/50 animate-pulse">
+                    {loadingText}
+                  </p>
+                  <p className="text-[9px] text-white/20 mt-1.5">ধৈর্য ধরো ভাই... ⏳</p>
                 </div>
               )}
 
@@ -700,18 +805,23 @@ const VoterFormTwo: React.FC = () => {
                 </div>
               )}
 
-              {/* No Results */}
+              {/* ═══ FUN NO RESULTS ═══ */}
               {searched && !loading && results.length === 0 && !error && (
                 <div className="text-center py-12">
-                  <div className="w-14 h-14 rounded-2xl bg-red-500/[0.05] border border-red-500/8 flex items-center justify-center mx-auto mb-3">
-                    <AlertCircle className="w-6 h-6 text-red-400/20" />
+                  <div className="w-14 h-14 rounded-2xl bg-violet-500/[0.06] border border-violet-500/10 flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">🤷‍♂️</span>
                   </div>
-                  <p className="text-[12px] font-semibold text-white/30 mb-3">তথ্য পাওয়া যায়নি</p>
-                  <button
-                    onClick={reset}
-                    className="text-[11px] font-medium text-indigo-400/60 hover:text-indigo-400/80 bg-indigo-500/8 hover:bg-indigo-500/12 px-3 py-1.5 rounded-lg border border-indigo-500/10 cursor-pointer transition-all"
+                  <p className="text-[12px] font-semibold text-white/40 mb-1">
+                    {getRandomItem(FUN_MSG.EMPTY_RESULTS)}
+                  </p>
+                  <p className="text-[10px] text-white/20 mb-4">
+                    তারিখ বা গ্রাম ভুল হলে ঠিক করে আবার চেষ্টা করো!
+                  </p>
+                  <button onClick={reset}
+                    className="text-[11px] font-medium text-indigo-400/60 hover:text-indigo-400/80 bg-indigo-500/8 hover:bg-indigo-500/12 px-3 py-1.5 rounded-lg border border-indigo-500/10 cursor-pointer transition-all inline-flex items-center gap-1.5"
                   >
-                    আবার চেষ্টা করুন
+                    <ArrowRight className="w-3 h-3 rotate-180" />
+                    আবার চেষ্টা করো ভাই! 💪
                   </button>
                 </div>
               )}
@@ -721,7 +831,7 @@ const VoterFormTwo: React.FC = () => {
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-[9px] text-white/60 flex items-center justify-center gap-1.5">
-              <Shield className="w-3 h-3 text-indigo-400/70" /> তথ্য সুরক্ষিত ও গোপনীয়
+              <Shield className="w-3 h-3 text-indigo-400/70" /> তথ্য সুরক্ষিত — চিন্তা করো না! 🔒
             </p>
           </div>
         </div>
@@ -746,10 +856,12 @@ const VoterFormTwo: React.FC = () => {
         }
         @keyframes shake {
           0%,100% { transform: translateX(0); }
-          20% { transform: translateX(-4px); }
-          40% { transform: translateX(4px); }
-          60% { transform: translateX(-2px); }
-          80% { transform: translateX(2px); }
+          15% { transform: translateX(-5px); }
+          30% { transform: translateX(5px); }
+          45% { transform: translateX(-3px); }
+          60% { transform: translateX(3px); }
+          75% { transform: translateX(-2px); }
+          90% { transform: translateX(1px); }
         }
         .scrl::-webkit-scrollbar { width: 3px; }
         .scrl::-webkit-scrollbar-track { background: transparent; }
