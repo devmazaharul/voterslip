@@ -631,7 +631,7 @@ const VoterFormTwo: React.FC = () => {
                 {wardId && (
                   <p className="mt-1.5 text-[9px] text-white/50 pl-0.5 flex items-center gap-1 animate-[fadeIn_0.2s]">
                     <CheckCircle2 className="w-3 h-3 text-emerald-400/70" />
-                    Ward: <span className="font-mono font-semibold text-emerald-400/80">{wardId}</span>
+                    গ্রাম: <span className="font-mono font-semibold text-emerald-400/80">{wardId}</span>
                   </p>
                 )}
               </div>
