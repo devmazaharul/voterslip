@@ -15,14 +15,14 @@ const DEFAULT_ID = 'kFdQLyS4tZM6ZzrbP4qlpg==:cVnDB/htIYd0eMY6OExRyg==';
 // ╚══════════════════════════════════════╝
 
 interface ExternalVoter {
-    VoterName: string | null;
-    DOB: string | null;
-    SerialNumber: string | number | null;
-    VoterNumber: string | number | null;
+    Name: string | null;
+    DOB_Bangla: string | null;
+    Serial: string | number | null;
+    Voter_No: string | number | null;
     Village: string | null;
-    MotherName: string | null;
-    FatherOrHusbandName: string | null;
-    PollingCenter: string | null;
+    Mother: string | null;
+    Husband_Father: string | null;
+    CenterName: string | null;
 }
 
 interface ExternalAPIResponse {
@@ -129,14 +129,14 @@ function toSafeNumber(val: string | number | null | undefined): number {
 
 function cleanVoter(raw: ExternalVoter): CleanedVoter {
     return {
-        name: (raw.VoterName || 'অজানা').trim(),
-        dateOfBirth: (raw.DOB || '').trim(),
-        serialNumber: toSafeNumber(raw.SerialNumber),
-        voterNumber: toSafeNumber(raw.VoterNumber),
+        name: (raw.Name || 'অজানা').trim(),
+        dateOfBirth: (raw.DOB_Bangla || '').trim(),
+        serialNumber: toSafeNumber(raw.Serial),
+        voterNumber: toSafeNumber(raw.Voter_No),
         village: (raw.Village || 'অজানা').trim(),
-        motherName: (raw.MotherName || 'Unknown').trim(),
-        fatherOrHusbandName: (raw.FatherOrHusbandName || 'Unknown').trim(),
-        pollingCenter: (raw.PollingCenter || 'অজানা').trim(),
+        motherName: (raw.Mother || 'Unknown').trim(),
+        fatherOrHusbandName: (raw.Husband_Father || 'Unknown').trim(),
+        pollingCenter: (raw.CenterName   || 'অজানা').trim(),
     };
 }
 
@@ -285,6 +285,8 @@ export async function POST(req: NextRequest) {
         // ╔══════════════════════════════════════╗
         // ║  STEP 3 → Clean + Convert           ║
         // ╚══════════════════════════════════════╝
+
+    
 
         const cleanedVoters = rawVoters.map(cleanVoter);
 
