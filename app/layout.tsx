@@ -1,17 +1,21 @@
-import type { Metadata, Viewport } from "next"; // Viewport ইমপোর্ট করতে হবে
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Anek_Bangla, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const anekBangla = Anek_Bangla({
+  variable: "--font-geist-sans",
+  subsets: ["bengali", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-// মোবাইল অ্যাপের মতো অটো-জুম অফ এবং ফিক্সড স্কেল করার জন্য:
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // এটি পিঞ্চ-জুম বন্ধ করবে
-  themeColor: "#0f172a", // আপনার bg-slate-900 এর সাথে মিলিয়ে মোবাইল স্ট্যাটাস বারের কালার
+  userScalable: false,
+  themeColor: "#f8fafc",
 };
 
 export const metadata: Metadata = {
@@ -20,9 +24,36 @@ export const metadata: Metadata = {
     default: "ভোটকেন্দ্র ও ভোটার তথ্য অনুসন্ধান | যশোর সদর • ১৪ নং ইউনিয়ন",
     template: "%s | যশোর সদর ডিজিটাল সেবা",
   },
-  description: "যশোর সদর উপজেলার ১৪ নং ইউনিয়নের ভোটার তালিকা, ভোটকেন্দ্র এবং ভোটার নম্বর অনলাইনে অনুসন্ধান করুন। জন্ম তারিখ ও গ্রাম দিয়ে সহজেই আপনার তথ্য যাচাই করুন।",
-  keywords: ["ভোটার তথ্য", "যশোর সদর", "১৪ নং ইউনিয়ন", "ভোটকেন্দ্র", "বাংলাদেশ নির্বাচন কমিশন", "NID Info", "Jashore Sadar", "Narendrapur Union"],
+  description:
+    "যশোর সদর উপজেলার ১৪ নং ইউনিয়নের ভোটার তালিকা, ভোটকেন্দ্র এবং ভোটার নম্বর অনলাইনে অনুসন্ধান করুন। জন্ম তারিখ ও গ্রাম দিয়ে সহজেই আপনার তথ্য যাচাই করুন।",
+  keywords: [
+    "ভোটার তথ্য",
+    "যশোর সদর",
+    "১৪ নং ইউনিয়ন",
+    "নরেন্দ্রপুর ইউনিয়ন",
+    "ভোটকেন্দ্র",
+    "ভোটার নম্বর",
+    "বাংলাদেশ নির্বাচন কমিশন",
+    "NID Info",
+    "Jashore Sadar",
+    "Narendrapur Union",
+    "Voter Serial Number",
+  ],
+  authors: [{ name: "Mazaharul", url: "https://bymaza.me" }],
+  creator: "Mazaharul",
   publisher: "Jashore Sadar Digital Seba",
+  category: "Government Services",
+  alternates: {
+    canonical: "https://voterserial.vercel.app",
+    languages: {
+      "bn-BD": "https://voterserial.vercel.app",
+    },
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
     title: "ভোটকেন্দ্র ও ভোটার তথ্য অনুসন্ধান | যশোর সদর",
     description: "আপনার জন্ম তারিখ এবং গ্রামের নাম দিয়ে সহজেই ভোটার তথ্য ও ভোটকেন্দ্র খুঁজে বের করুন।",
@@ -56,12 +87,17 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  verification: {
+    google: "your-google-site-verification-code",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="bn">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-900 touch-manipulation overscroll-none`}>{children}</body>
+      <body className={`${anekBangla.variable} ${geistMono.variable} antialiased bg-slate-50 touch-manipulation overscroll-none`}>
+        {children}
+      </body>
     </html>
   );
 }
